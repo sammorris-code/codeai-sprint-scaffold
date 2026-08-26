@@ -95,7 +95,7 @@ Open Claude Desktop and click the **Code** tab at the top center. Choose
 **Select folder** and pick the folder where you keep projects (Documents is
 fine). Not the repository itself yet, since you do not have it.
 
-Now type this into the session, replacing the URL with the one for our repo:
+Now type this into the session:
 
 ```
 Clone https://github.com/sammorris-code/codeai-sprint-scaffold into this folder,

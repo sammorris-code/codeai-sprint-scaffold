@@ -56,7 +56,7 @@ Then you are back at the block above, ready to pull and branch again.
 ## Exercise 1 — Get the repository and look around
 
 ```
-git clone <repo-url>
+git clone https://github.com/sammorris-code/codeai-sprint-scaffold
 cd codeai-sprint-scaffold
 ```
 

@@ -79,7 +79,7 @@ searching.
 Get the repository and start a session inside it:
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/sammorris-code/codeai-sprint-scaffold
 cd codeai-sprint-scaffold
 claude
 ```
