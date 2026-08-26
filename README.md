@@ -23,12 +23,16 @@ tools/change-impact-tracker/        Candidate #6 (internal)
 CLAUDE.md                           Project instructions for Claude Code sessions
 docs/git-exercises.md               Track 1: five git exercises, in order
 docs/claude-code-exercises.md       Track 2: seven Claude Code exercises, in order
+docs/claude-desktop-tutorial.md     Track 3: git in Claude Desktop, no terminal
+tutorials/                          All three tracks as a web page, at /tutorials/
 CONTRIBUTING.md                     The short version
 ```
 
-## Two learning tracks
+## Three learning tracks
 
-They are independent, and you can do either first.
+They are independent, and you can do them in any order. All three are also
+readable as a web page at `/tutorials/`, which renders these same files — serve
+the site and open `tutorials/` there.
 
 **`docs/git-exercises.md`** — git by hand. Branch, commit, pull request, merge
 conflict, review. About an hour. Start here if you have never opened a pull
@@ -38,6 +42,11 @@ request.
 starting from nothing installed. About 90 minutes. Doing one manual pull request
 first is worth it, because then you can tell what Claude is actually doing on
 your behalf.
+
+**`docs/claude-desktop-tutorial.md`** — the same loop in Claude Desktop, with no
+terminal at all. About 75 minutes. Assumes you have never used git and starts by
+defining the five words. Start here if the command line is the part putting you
+off.
 
 ## The one constraint
 

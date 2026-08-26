@@ -305,6 +305,18 @@ a:hover {
   display: none;
 }
 
+.doc-note {
+  margin: 0 0 1.25rem;
+  padding: 0.9rem 1.15rem;
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 6px 6px 0;
+}
+
+.doc-note p {
+  margin: 0;
+}
+
 .doc-list {
   margin: 0 0 1.25rem;
   padding-left: 1.25rem;

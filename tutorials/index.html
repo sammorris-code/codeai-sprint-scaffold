@@ -50,6 +50,18 @@
         <span class="tab-title">Claude Code tutorial</span>
         <span class="tab-meta">7 exercises · about 90 minutes</span>
       </button>
+      <button type="button"
+              role="tab"
+              id="tab-claude-desktop"
+              class="tab"
+              aria-controls="panel-claude-desktop"
+              aria-selected="false"
+              tabindex="-1"
+              data-track="claude-desktop"
+              data-src="../docs/claude-desktop-tutorial.md">
+        <span class="tab-title">Claude Desktop tutorial</span>
+        <span class="tab-meta">7 exercises · about 75 minutes · no terminal</span>
+      </button>
     </div>
 
     <section role="tabpanel"
@@ -77,12 +89,26 @@
       </div>
     </section>
 
+    <section role="tabpanel"
+             id="panel-claude-desktop"
+             class="panel"
+             aria-labelledby="tab-claude-desktop"
+             tabindex="0"
+             hidden>
+      <p class="doc-status" role="status">Loading the Claude Desktop tutorial…</p>
+      <div class="doc-layout" hidden>
+        <nav class="doc-toc" aria-label="Claude Desktop tutorial contents"></nav>
+        <article class="doc"></article>
+      </div>
+    </section>
+
     <noscript>
       <p class="notice">
         This page builds itself from the markdown files, which needs JavaScript.
         You can read them directly instead:
-        <a href="../docs/git-exercises.md">git-exercises.md</a> and
-        <a href="../docs/claude-code-exercises.md">claude-code-exercises.md</a>.
+        <a href="../docs/git-exercises.md">git-exercises.md</a>,
+        <a href="../docs/claude-code-exercises.md">claude-code-exercises.md</a>, and
+        <a href="../docs/claude-desktop-tutorial.md">claude-desktop-tutorial.md</a>.
       </p>
     </noscript>
   </main>

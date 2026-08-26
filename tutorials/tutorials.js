@@ -8,9 +8,9 @@
 
    The renderer handles the subset of markdown our docs actually use:
    headings, fenced code, inline code, bold, italic, links, bare URLs, bullet
-   and numbered lists, tables, and horizontal rules. It is not a general
-   markdown library and does not need to be. If a doc starts using something
-   it does not understand, add it here.
+   and numbered lists, blockquotes, tables, and horizontal rules. It is not a
+   general markdown library and does not need to be. If a doc starts using
+   something it does not understand, add it here.
 
    Note: fetch() cannot read files from a file:// path, so this page needs to
    be served. python3 -m http.server 8000 is enough. The page says so itself
@@ -74,7 +74,7 @@
       .map(function (cell) { return cell.trim(); });
   }
 
-  var BLOCK_START = /^(#{1,6}\s|```|---+\s*$|\s*([-*]|\d+\.)\s|\s*\|)/;
+  var BLOCK_START = /^(#{1,6}\s|```|---+\s*$|\s*([-*]|\d+\.)\s|\s*\||>\s?)/;
 
   function render(markdown, idPrefix) {
     var lines = markdown.replace(/\r\n?/g, '\n').split('\n');
@@ -157,6 +157,18 @@
         });
         table.push('</tbody></table></div>');
         html.push(table.join(''));
+        continue;
+      }
+
+      // Blockquote. Wrapped lines fold into one paragraph, the way the docs
+      // write them.
+      if (/^>\s?/.test(line)) {
+        var quoted = [];
+        while (i < lines.length && /^>\s?/.test(lines[i])) {
+          quoted.push(lines[i].replace(/^>\s?/, ''));
+          i++;
+        }
+        html.push('<blockquote class="doc-note"><p>' + inline(quoted.join(' ')) + '</p></blockquote>');
         continue;
       }
 
