@@ -168,3 +168,12 @@ git add . && git commit     save it
 
 Everything else you can look up. And nothing you do on a branch can hurt `main`,
 which is the whole reason branches exist.
+
+---
+
+## Next
+
+`claude-code-exercises.md` covers the same repository through Claude Code,
+starting from nothing installed. Having done the exercises above by hand, you
+will be able to tell what it is doing for you — including exercise 6, where you
+hand it a merge conflict just like the one you resolved in exercise 3.

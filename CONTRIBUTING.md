@@ -47,3 +47,16 @@ Look at the Files changed tab. Click the preview link if the repo is wired to
 Netlify or Vercel. Leave a comment on a specific line if something looks off.
 Approving is a normal, low-stakes thing to do — you are not certifying the code
 is perfect, only that it should go in.
+
+## If you use Claude Code
+
+`CLAUDE.md` at the repository root tells Claude Code the house rules for this
+project — no JavaScript, no visual styling in the shared stylesheet, no student
+data. It is read automatically at the start of every session in this folder, so
+you do not need to re-explain the constraints each time.
+
+If you find yourself correcting Claude on the same thing twice, add it to
+`CLAUDE.md` and open a pull request. That file is shared, and everybody's
+sessions improve when one person writes down a lesson.
+
+New to the tool? `docs/claude-code-exercises.md` starts from installation.
