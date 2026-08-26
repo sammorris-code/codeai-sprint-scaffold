@@ -1,0 +1,396 @@
+/* ==========================================================================
+   tutorials/style.css
+
+   Styling for the Tutorials page only. Nothing else links this file, so you
+   can change anything in here without touching another team's page.
+
+   Loaded after css/layout.css, which supplies the structure (.page, .breadcrumb,
+   .data-table, .table-scroll). This file supplies the look.
+   ========================================================================== */
+
+/* --- Tokens ------------------------------------------------------------- */
+
+:root {
+  --ink: #16181d;
+  --ink-soft: #575d6b;
+  --ink-faint: #8b91a0;
+  --paper: #ffffff;
+  --paper-sunk: #f5f6f8;
+  --paper-code: #f2f4f7;
+  --rule: #e2e5ea;
+  --rule-strong: #c9ced8;
+  --accent: #2f5bd7;
+  --accent-soft: #eef2fd;
+  --warn: #9a3412;
+  --warn-soft: #fdf1e7;
+
+  --font-text: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+               Arial, sans-serif;
+  --font-code: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+               "Liberation Mono", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e7e9ee;
+    --ink-soft: #a7adba;
+    --ink-faint: #767d8c;
+    --paper: #14161a;
+    --paper-sunk: #1b1e24;
+    --paper-code: #1e222a;
+    --rule: #2b2f38;
+    --rule-strong: #3b414d;
+    --accent: #8aa9ff;
+    --accent-soft: #1c2438;
+    --warn: #f0b48a;
+    --warn-soft: #2b2019;
+  }
+}
+
+/* --- Page shell --------------------------------------------------------- */
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+
+.tutorials.page {
+  max-width: 76rem;
+}
+
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.breadcrumb {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.breadcrumb a {
+  color: var(--ink-soft);
+}
+
+.site-header h1 {
+  font-size: clamp(1.9rem, 1.4rem + 1.8vw, 2.6rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.lede {
+  color: var(--ink-soft);
+  font-size: 1.0625rem;
+  max-width: 46rem;
+  margin: 0 0 0.5rem;
+}
+
+.site-footer {
+  margin-top: 4rem;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.8125rem;
+}
+
+/* --- Tabs --------------------------------------------------------------- */
+
+.tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 2rem 0 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.7rem 1.1rem;
+  margin-bottom: -1px;
+  background: none;
+  border: 1px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: 6px 6px 0 0;
+  color: var(--ink-soft);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: var(--paper-sunk);
+  color: var(--ink);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.tab-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.tab-meta {
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+}
+
+.tab[aria-selected="true"] .tab-meta {
+  color: var(--ink-soft);
+}
+
+.panel {
+  padding-top: 2rem;
+}
+
+.panel:focus-visible {
+  outline-offset: 6px;
+}
+
+/* --- Status and notices -------------------------------------------------- */
+
+.doc-status,
+.notice {
+  padding: 1rem 1.15rem;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+  max-width: 46rem;
+}
+
+.doc-status--error {
+  background: var(--warn-soft);
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.doc-status--error a {
+  color: inherit;
+}
+
+/* --- Document layout ----------------------------------------------------- */
+
+.doc-layout {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: 3rem;
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .doc-layout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+/* --- Table of contents --------------------------------------------------- */
+
+.doc-toc {
+  position: sticky;
+  top: 1.5rem;
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  font-size: 0.875rem;
+  border-left: 2px solid var(--rule);
+  padding-left: 1rem;
+}
+
+@media (max-width: 60rem) {
+  .doc-toc {
+    position: static;
+    max-height: none;
+    border-left: 0;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 1rem 1.15rem;
+    background: var(--paper-sunk);
+  }
+}
+
+.toc-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 0.6rem;
+}
+
+.doc-toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.doc-toc a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  display: block;
+}
+
+.doc-toc a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* --- Rendered markdown --------------------------------------------------- */
+
+.doc {
+  min-width: 0;
+  max-width: 44rem;
+}
+
+.doc > :first-child {
+  margin-top: 0;
+}
+
+.doc h1 {
+  font-size: 1.75rem;
+  letter-spacing: -0.015em;
+  margin: 0 0 1rem;
+}
+
+.doc h2 {
+  font-size: 1.375rem;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 3rem 0 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+  scroll-margin-top: 1.5rem;
+}
+
+.doc h3 {
+  font-size: 1.0625rem;
+  margin: 2rem 0 0.75rem;
+  scroll-margin-top: 1.5rem;
+}
+
+.doc p {
+  margin: 0 0 1rem;
+}
+
+.doc strong {
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.doc hr {
+  display: none;
+}
+
+.doc-list {
+  margin: 0 0 1.25rem;
+  padding-left: 1.25rem;
+}
+
+.doc-list li {
+  margin-bottom: 0.5rem;
+}
+
+.doc-list li::marker {
+  color: var(--ink-faint);
+}
+
+/* --- Code ---------------------------------------------------------------- */
+
+.doc code {
+  font-family: var(--font-code);
+  font-size: 0.875em;
+  background: var(--paper-code);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  word-break: break-word;
+}
+
+.doc .code {
+  position: relative;
+  background: var(--paper-code);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 1rem 1.15rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  line-height: 1.55;
+}
+
+.doc .code code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: 0.875rem;
+  white-space: pre;
+}
+
+.doc .code[data-lang]::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.2rem 0.6rem;
+  background: var(--rule);
+  border-radius: 0 7px 0 7px;
+  color: var(--ink-soft);
+  font-family: var(--font-text);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* --- Tables -------------------------------------------------------------- */
+
+.doc .table-scroll {
+  margin: 0 0 1.25rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.doc .data-table {
+  font-size: 0.9375rem;
+}
+
+.doc .data-table th,
+.doc .data-table td {
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.doc .data-table thead th {
+  background: var(--paper-sunk);
+  border-bottom-color: var(--rule-strong);
+  font-size: 0.8125rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.doc .data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
