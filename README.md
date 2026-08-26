@@ -45,7 +45,7 @@ your behalf.
 
 **`docs/claude-desktop-tutorial.md`** — the same loop in Claude Desktop, with no
 terminal at all. About 75 minutes. Assumes you have never used git and starts by
-defining the five words. Start here if the command line is the part putting you
+defining the six words. Start here if the command line is the part putting you
 off.
 
 ## The one constraint

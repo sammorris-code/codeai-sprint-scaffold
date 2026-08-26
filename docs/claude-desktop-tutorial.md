@@ -13,11 +13,11 @@ work. If we are on a Team plan, you already have it.
 
 ---
 
-## Five words, before you touch anything
+## Six words, before you touch anything
 
 Git has a reputation for being confusing, and most of that comes from people
-using the tool before anyone told them what the words mean. There are five. They
-take two minutes.
+using the tool before anyone told them what the words mean. There are six. They
+take three minutes.
 
 **Repository** — a folder of files that keeps its whole history. Every version of
 every file, forever. Ours holds a small website. People say "repo."
@@ -35,13 +35,56 @@ is cheap and disposable, and nothing you do on one can damage `main`.
 file" — you save files normally, then gather those saved changes into a commit
 when they add up to something describable.
 
-**Pull request** — the proposal. "Here is my branch, please look at it, and if it
-seems right, fold it into `main`." Someone reads it and merges it. People say
-"PR." This is where the actual collaboration happens; everything before it is
-just you working.
+**Pull** — to bring commits down from GitHub into your copy. "Pull the latest"
+means "go and get everything the team has merged, and put it in my folder." Its
+opposite is **push**, which sends your commits up. Pull down, push up.
 
-The whole loop, in one line: **pull, branch, change, commit, push, pull request,
-merge.** Everything below is that loop, seven times, slowly.
+**Pull request** — the proposal, and the name deserves unpacking, because it is
+the single most confusing term in git. It is *not* a request for you to pull
+something. You are asking the repository to pull *your* branch in: "here are my
+commits, please look at them, and if they seem right, pull them into `main`."
+The request is aimed at `main`, and you are the one making the offer.
+
+If "change request" feels like the more natural name, your instinct is sound —
+GitLab, a competing product, calls the identical thing a **merge request**. GitHub
+named it after the operation happening underneath, not after what you are asking
+for. Everyone says "PR."
+
+This is where the collaboration actually happens. Everything before it is just
+you working.
+
+---
+
+## The loop
+
+Those six words are the vocabulary. This is the order you use them in. Every
+piece of work you ever do in this repository is one trip down this table.
+
+| Step | What it actually does |
+|---|---|
+| **pull** | Bring down everything the team has merged since you last looked. You start from the current version of the site instead of last week's. |
+| **branch** | Make yourself a named private workspace. Nothing you do in it can affect `main` or anybody else. |
+| **change** | Edit the files. In Desktop, this is you describing what you want and reading the diff Claude offers back. |
+| **commit** | Save a checkpoint with a note explaining what changed. Still only on your computer. |
+| **push** | Send your commits up to GitHub, so the team can see your branch. |
+| **pull request** | Ask for your branch to be pulled into `main`. A human reads it and decides. |
+| **merge** | Your commits become part of `main`. The change is now everyone's. |
+| **pull** | Merging happened on GitHub, not on your laptop. Pull again to bring the new `main` down to you — and you are back at the top of the table. |
+
+Two things worth noticing before you start.
+
+**Pull appears twice**, at the top and the bottom, and it is the same command
+both times. That is what makes this a loop rather than a list. Skipping the pull
+at the top is the most common cause of the conflicts you will meet in exercise 6;
+skipping the one at the bottom is why people end up wondering where their own
+merged work went.
+
+**Only two steps involve anyone else** — the pull request and the merge.
+Everything else is you, alone, unable to break anything.
+
+The seven exercises below walk this loop once at a comfortable pace, then run it
+again with a deliberate conflict in the middle, then put you on the other side of
+it as the person doing the reviewing.
 
 ---
 
