@@ -11,25 +11,43 @@ scaffold for a three-day product sprint. It is **not** a production site.
 The seven pages under `tools/` each correspond to one candidate product from the
 sprint's scoping work. `index.html` is the portal directory that links them.
 
-## Hard constraints
+## Hard constraint
 
-These are the point of the repository, not oversights. Do not "fix" them.
+One rule is absolute:
 
-- **No JavaScript.** No `<script>` tags, no inline event handlers, no framework,
-  no build step, no `package.json`. Forms submit to `#` anchors and buttons do
-  nothing. If a task seems to require JavaScript, say so and stop rather than
-  adding it.
-- **No visual styling.** `css/layout.css` contains layout properties only:
-  display, grid, flex, gap, margin, padding, width, position, overflow,
-  box-sizing. It must not gain `color`, `background`, `font-family`, `font-size`,
-  `font-weight`, `border`, `border-radius`, `box-shadow`, or `transition`.
-- **No inline `style` attributes** in any HTML file.
-- **Per-tool styling goes in the tool's own folder.** When a team styles a page,
-  create `tools/<name>/style.css` and uncomment the existing commented-out
-  `<link>` in that page's `<head>`. Never put visual styling in the shared
-  stylesheet.
 - **This repository is public.** No student data, no real district contacts, no
   credentials, no internal pricing. Sample content only.
+
+## Building on the scaffold
+
+This repository used to ban JavaScript and visual styling. **Those bans are
+lifted.** The baseline is live and teams are building on it now, so JavaScript,
+CSS, frameworks, and build tooling are all available. Do not refuse a request,
+or strip working code, on the grounds that this is a "no JavaScript" repository.
+It is not one any more.
+
+What replaces the bans is ordinary judgment:
+
+- **Pages currently open straight from a file path.** Anything using `fetch()`,
+  ES modules, or a service worker will not run from `file://` and needs a served
+  site. That is a fine trade to make — just say so, and give the page a real
+  fallback rather than an empty panel.
+- **A build step is a decision, not a detail.** `netlify.toml` publishes `.` with
+  no build command, and GitHub Pages serves the branch root. A toolchain means
+  changing both and handing the team an install step they did not have before.
+  Worth doing deliberately; not worth acquiring by accident for one convenience.
+- **Shared files still collide.** `index.html` and `css/layout.css` are touched
+  by everyone. Keep changes to them small and separate from other work.
+- **Per-tool work belongs in the tool's folder** — `tools/<name>/style.css` and
+  any scripts alongside it, linked from that page's `<head>`, where a
+  commented-out `<link>` is already waiting. This is merge hygiene now, not a
+  rule.
+- **Site-wide visual styling is fine.** Prefer adding `css/theme.css` to growing
+  `layout.css`, so the file every page depends on stays small and stable.
+- **Keep the semantics and the keyboard working.** Anything interactive must be
+  reachable by tab and operable by keyboard, and real controls (`<button>`,
+  `<a>`, `<details>`) beat a `div` with a click handler. This team builds for
+  school districts, so accessibility is part of the work, not a later pass.
 
 ## Conventions
 
@@ -47,15 +65,16 @@ These are the point of the repository, not oversights. Do not "fix" them.
 
 ## Verifying a change
 
-There is no test suite. After editing, check:
+There is no test suite. Open the page in a browser — directly from the file path
+if it does not need a server, otherwise:
 
 ```bash
-grep -rniE "<script|onclick|onchange|style=" --include="*.html" .
-grep -nE "^\s*(color|background|font-family|border|box-shadow)\s*:" css/layout.css
+python3 -m http.server 8000
 ```
 
-Both should return nothing. Then open the page in a browser, or serve it with
-`python3 -m http.server 8000`.
+Then tab through anything interactive to confirm it is reachable and operable by
+keyboard, and check the browser console for errors. The `grep` checks that used
+to live here enforced the JavaScript and styling bans, and went with them.
 
 ## Working with this team
 

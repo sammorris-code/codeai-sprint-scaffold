@@ -109,7 +109,8 @@ Code does, and it is completely safe.
 One more:
 
 ```
-Explain what css/layout.css is doing and why there are no colors in it.
+Explain what css/layout.css is doing, and where CLAUDE.md says to put colors and
+fonts instead.
 ```
 
 **You learned:** starting a session is just `cd` and `claude`. Read-only work is
@@ -151,8 +152,12 @@ this tool would require. Use the same markup conventions as the rest of the page
 Check the result in a browser. Then check that it obeyed the house rules:
 
 ```
-Did you add any JavaScript or any visual styling? Verify against CLAUDE.md.
+Does this follow the conventions in CLAUDE.md? Check the markup conventions and
+where styling is supposed to live.
 ```
+
+It will tell you which conventions it followed and where it got them. Notice you
+never mentioned that file.
 
 **You learned:** permission prompts, reading diffs, and that the repository's
 `CLAUDE.md` is already shaping what Claude does without you mentioning it.
@@ -256,7 +261,8 @@ explanation is worth more than the fix.
 
 This is the exercise that compounds. `CLAUDE.md` is a plain markdown file at the
 repository root that Claude Code reads at the start of every session in this
-folder. It is why Claude already knew not to add JavaScript in exercise 3.
+folder. It is why Claude already knew this page's conventions in exercise 3
+without you explaining them.
 
 Open it and read it:
 

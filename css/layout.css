@@ -1,20 +1,23 @@
 /* ==========================================================================
-   layout.css — structure only
+   layout.css — the shared structural stylesheet
 
-   GROUND RULE FOR THIS FILE (please keep it):
-   This stylesheet does LAYOUT. It does not do LOOK.
+   This file does LAYOUT: display, grid, flex, gap, margin, padding, width,
+   max-width, position, overflow, box-sizing.
 
-   Allowed here:      display, grid, flex, gap, margin, padding, width,
-                      max-width, position, overflow, box-sizing
-   Not allowed here:  color, background, font-family, font-size, font-weight,
-                      border, border-radius, box-shadow, transition
+   Colors, fonts, borders, and shadows used to be banned here. They are not any
+   more — but this is still the file EVERY page loads, so keeping look out of it
+   is worth doing on purpose:
 
-   Everything in the "not allowed" list is the sprint's job. When your team
-   starts styling, do it in your own tool's stylesheet (see the commented-out
-   link tag in your tool page), not in here. That keeps merges boring.
+     - Site-wide visual styling  ->  add css/theme.css and link it alongside
+                                     this file. Nobody has to merge it against
+                                     a grid change.
+     - One page's styling        ->  tools/<name>/style.css, linked from that
+                                     page (the link tag is already there,
+                                     commented out).
 
-   This file is shared by every page, so two teams editing it at the same time
-   WILL collide. That is on purpose — see docs/git-exercises.md, Exercise 3.
+   Two teams editing this file at the same time WILL collide. That is partly on
+   purpose — see docs/git-exercises.md, Exercise 4 — and partly why the routing
+   above exists. Change it when you need to; keep the changes small.
    ========================================================================== */
 
 /* --- Reset -------------------------------------------------------------- */
