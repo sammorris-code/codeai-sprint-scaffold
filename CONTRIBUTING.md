@@ -5,7 +5,8 @@ The short version. For practice exercises see `docs/git-exercises.md`.
 ## The loop
 
 ```
-git pull                            get everyone else's work
+git checkout main                   start from the shared version
+git pull                            get everyone else's merged work
 git checkout -b your-branch-name    make your own branch
 ...edit files...
 git add .
@@ -15,10 +16,24 @@ git push -u origin your-branch-name
 
 Then open a pull request on GitHub. Someone reviews it. It merges.
 
+Pull first, branch second, every time — a branch is a copy of `main` as it looked
+when you made it, so branching from a stale `main` means editing a stale site.
+After the merge, `git checkout main && git pull` brings the merged work down to
+your laptop; `docs/git-exercises.md` has the full before-and-after routine.
+
 ## Branch names
 
 `yourname/what-it-does` works fine. `alicia/style-workshop-builder`,
-`banks/pathway-time-chart`. Avoid working directly on `main`.
+`banks/pathway-time-chart`.
+
+Avoid working directly on `main`. Not because a commit there is destructive — it
+is not — but because `main` is the one copy everybody pulls from, and a commit
+sitting on your local `main` is invisible to everyone until you push it, and
+unreviewable once you do. It also breaks `git pull`: the moment your `main` and
+GitHub's `main` both have commits the other lacks, `pull` stops and demands you
+choose how to reconcile them, which is a decision nobody should have to make
+before they can get their teammates' work. Branch for everything, and `main`
+stays what it should be — a landing spot for reviewed work, never a workspace.
 
 ## Commit messages
 
