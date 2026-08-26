@@ -12,7 +12,7 @@ A deliberately plain, deliberately unfinished website. Two jobs:
 
 ```
 index.html                          District Implementation Portal — the directory
-css/layout.css                      Shared stylesheet. Layout only, no visual styling.
+css/layout.css                      Shared stylesheet. Structure; shared by every page.
 tools/assessment-engine/            Candidate #2
 tools/standards-mapper/             Candidate #3a (internal)
 tools/standards-lookup/             Candidate #3b
@@ -23,12 +23,16 @@ tools/change-impact-tracker/        Candidate #6 (internal)
 CLAUDE.md                           Project instructions for Claude Code sessions
 docs/git-exercises.md               Track 1: five git exercises, in order
 docs/claude-code-exercises.md       Track 2: seven Claude Code exercises, in order
+docs/claude-desktop-tutorial.md     Track 3: git in Claude Desktop, no terminal
+tutorials/                          All three tracks as a web page, at /tutorials/
 CONTRIBUTING.md                     The short version
 ```
 
-## Two learning tracks
+## Three learning tracks
 
-They are independent, and you can do either first.
+They are independent, and you can do them in any order. All three are also
+readable as a web page at `/tutorials/`, which renders these same files — serve
+the site and open `tutorials/` there.
 
 **`docs/git-exercises.md`** — git by hand. Branch, commit, pull request, merge
 conflict, review. About an hour. Start here if you have never opened a pull
@@ -39,27 +43,45 @@ starting from nothing installed. About 90 minutes. Doing one manual pull request
 first is worth it, because then you can tell what Claude is actually doing on
 your behalf.
 
-## The three constraints
+**`docs/claude-desktop-tutorial.md`** — the same loop in Claude Desktop, with no
+terminal at all. About 75 minutes. Assumes you have never used git and starts by
+defining the five words. Start here if the command line is the part putting you
+off.
 
-These are on purpose. Please keep them until your team decides otherwise.
-
-**No JavaScript.** Not one line, anywhere, right now. Forms point at anchors and
-buttons do nothing. Adding behavior is the sprint's work, and it is much more
-satisfying to add it to a page that already has real structure.
-
-**No visual styling.** `css/layout.css` handles layout — grids, spacing, widths —
-and nothing else. No colors, no fonts, no borders, no shadows. Every page will
-look like 1994. That is fine. It means the HTML has to carry the meaning, and it
-means your first styling commit produces a visible, obvious win.
+## The one constraint
 
 **No student data. Ever.** This repository is public. Sample content only, and
-the districts and names in it are illustrative.
+the districts and names in it are illustrative. No real district contacts, no
+credentials, no internal pricing.
+
+That is the whole list now.
+
+## What the scaffold started as
+
+The baseline was built with two extra restrictions — no JavaScript and no visual
+styling — so that the structure came first and the HTML had to carry the meaning
+on its own. **Both are lifted.** The baseline is live, and JavaScript, CSS,
+frameworks, and build tooling are all open to you.
+
+Two consequences worth knowing before you use them:
+
+- **Pages currently open straight from a file path.** Anything using `fetch()`
+  or ES modules will not run from `file://` — it needs a served site. Not a
+  reason to avoid it, just a thing to know when a teammate says "it's blank."
+- **A build step changes how the site deploys.** Right now `netlify.toml`
+  publishes `.` with no build command, and GitHub Pages serves the branch root.
+  Adding a toolchain means updating both and giving everyone an install step.
+  Worth doing on purpose; not worth acquiring by accident.
+
+You will still find leftover pages with buttons that do nothing and forms
+pointing at `#` anchors. Those are unfinished, not protected — wire them up.
 
 ## Running it locally
 
-There is no build step. Open `index.html` in a browser and it works.
+There is no build step today. Open `index.html` in a browser and it works.
 
-If you would rather serve it (relative paths behave more predictably):
+Serving it is the safer habit, and it is required for any page that fetches
+files at runtime:
 
 ```
 python3 -m http.server 8000

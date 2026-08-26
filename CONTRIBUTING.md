@@ -49,12 +49,24 @@ restructure the markup.
 pull before you start. Keep changes to these small and separate from your other
 work so they are easy to review and easy to merge.
 
-## Styling
+## Styling and JavaScript
 
-When your team starts styling, create `style.css` inside your own tool folder and
-uncomment the link tag already sitting in your page's `<head>`. Please do not put
-colors or fonts into `css/layout.css` — it is shared, and it is the file most
-likely to cause a painful conflict.
+Both are open. The scaffold shipped with no JavaScript and no visual styling so
+that the structure came first; that baseline is live, and the restrictions are
+gone. Build what your tool needs.
+
+Where to put it, so merges stay boring:
+
+- **One page's styling or behavior** — `style.css` and any scripts inside your
+  own tool folder. Uncomment the link tag already sitting in your page's
+  `<head>`.
+- **Site-wide styling** — add `css/theme.css` rather than growing
+  `css/layout.css`. `layout.css` is loaded by every page and is the file most
+  likely to give someone a painful conflict.
+
+One practical note: a page that fetches files at runtime will not work when
+opened straight from a file path — browsers block that. Serve it with
+`python3 -m http.server 8000` and it behaves.
 
 ## Reviewing a pull request
 
@@ -66,9 +78,9 @@ is perfect, only that it should go in.
 ## If you use Claude Code
 
 `CLAUDE.md` at the repository root tells Claude Code the house rules for this
-project — no JavaScript, no visual styling in the shared stylesheet, no student
-data. It is read automatically at the start of every session in this folder, so
-you do not need to re-explain the constraints each time.
+project — no student data, where per-tool work goes, and what the conventions
+are. It is read automatically at the start of every session in this folder, so
+you do not need to re-explain them each time.
 
 If you find yourself correcting Claude on the same thing twice, add it to
 `CLAUDE.md` and open a pull request. That file is shared, and everybody's
