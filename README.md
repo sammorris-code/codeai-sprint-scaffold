@@ -78,28 +78,14 @@ pointing at `#` anchors. Those are unfinished, not protected — wire them up.
 
 ## Running it locally
 
-There is no build step today. Open `index.html` in a browser and it works, and
-for most work that is all you need — the deployed site and its per-pull-request
-previews cover the rest.
+There is no build step and nothing to install. Open `index.html` in a browser
+and it works. Edit a tool page, reload the tab, see the change.
 
-One page is the exception. `/tutorials/` builds itself by fetching the files in
-`docs/` at runtime, and browsers block that when a page is opened from a file
-path. To see that page locally, serve the folder instead.
+The one exception is `/tutorials/`, which builds itself from the files in
+`docs/` at runtime and therefore only works served. Read it on the live site
+rather than locally:
 
-**macOS or Linux:**
-
-```bash
-python3 -m http.server 8000
-```
-
-**Windows:**
-
-```powershell
-python -m http.server 8000
-```
-
-Windows installs the command as `python`, not `python3`; if neither is found,
-try `py -m http.server 8000`. Then visit `http://localhost:8000`.
+**https://codeai-sprint-scaffold.netlify.app/tutorials/**
 
 ## Getting it online
 

@@ -65,13 +65,12 @@ What replaces the bans is ordinary judgment:
 
 ## Verifying a change
 
-There is no test suite. Open the page in a browser — directly from the file path
-if it does not need a server, otherwise:
+There is no test suite and nothing to install. Open the page in a browser from
+its file path — every page except `tutorials/` works that way, and that is how
+the team looks at their own work.
 
-```bash
-python3 -m http.server 8000    # macOS, Linux
-python -m http.server 8000     # Windows, which has no python3
-```
+There is no build step. If a page you are working on genuinely needs to be
+served, any static server will do; do not add a toolchain to the project for it.
 
 Then tab through anything interactive to confirm it is reachable and operable by
 keyboard, and check the browser console for errors. The `grep` checks that used
