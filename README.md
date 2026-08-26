@@ -78,16 +78,14 @@ pointing at `#` anchors. Those are unfinished, not protected — wire them up.
 
 ## Running it locally
 
-There is no build step today. Open `index.html` in a browser and it works.
+There is no build step and nothing to install. Open `index.html` in a browser
+and it works. Edit a tool page, reload the tab, see the change.
 
-Serving it is the safer habit, and it is required for any page that fetches
-files at runtime:
+The one exception is `/tutorials/`, which builds itself from the files in
+`docs/` at runtime and therefore only works served. Read it on the live site
+rather than locally:
 
-```
-python3 -m http.server 8000
-```
-
-Then visit `http://localhost:8000`.
+**https://codeai-sprint-scaffold.netlify.app/tutorials/**
 
 ## Getting it online
 

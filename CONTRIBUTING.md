@@ -65,8 +65,10 @@ Where to put it, so merges stay boring:
   likely to give someone a painful conflict.
 
 One practical note: a page that fetches files at runtime will not work when
-opened straight from a file path — browsers block that. Serve it with
-`python3 -m http.server 8000` and it behaves.
+opened straight from a file path — browsers block that. Everything in `tools/`
+is plain HTML and CSS, so it opens from a file path fine; if you build something
+that needs fetching, say so in your pull request, because the reviewer will need
+the deploy preview rather than a local file.
 
 ## Reviewing a pull request
 

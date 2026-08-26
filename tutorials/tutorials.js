@@ -12,9 +12,10 @@
    general markdown library and does not need to be. If a doc starts using
    something it does not understand, add it here.
 
-   Note: fetch() cannot read files from a file:// path, so this page needs to
-   be served. python3 -m http.server 8000 is enough. The page says so itself
-   rather than sitting there empty.
+   Note: fetch() cannot read files from a file:// path, so this page only works
+   served — in practice, the deployed site. Any static server will do if you are
+   working on this page itself. Opened from a file path, it points the reader at
+   the live site rather than sitting there empty.
    ========================================================================== */
 
 (function () {
@@ -227,11 +228,16 @@
     nav.innerHTML = '<h2 class="toc-title">On this page</h2><ul>' + list + '</ul>';
   }
 
-  function showError(panel, tab, message) {
+  // Where the tutorials are meant to be read. Anyone who reaches this page some
+  // other way — from a file path, or with JavaScript off — gets sent here, not
+  // to the raw markdown. The markdown is the source; the page is the tutorial.
+  var LIVE_TUTORIALS = 'https://codeai-sprint-scaffold.netlify.app/tutorials/';
+
+  function showError(panel, message) {
     var status = panel.querySelector('.doc-status');
     status.classList.add('doc-status--error');
     status.innerHTML = message +
-      ' <a href="' + tab.dataset.src + '">Open the markdown file directly.</a>';
+      ' <a href="' + LIVE_TUTORIALS + '">Read the tutorials on the live site.</a>';
   }
 
   function load(tab, panel) {
@@ -242,10 +248,9 @@
     var layout = panel.querySelector('.doc-layout');
 
     if (location.protocol === 'file:') {
-      showError(panel, tab,
-        'This page reads the markdown files at runtime, which browsers block ' +
-        'on a file:// path. Serve the folder — <code>python3 -m http.server 8000</code> — ' +
-        'and reload.');
+      showError(panel,
+        'This page builds itself from the files in <code>docs/</code>, which a ' +
+        'browser will not read from a file path.');
       return;
     }
 
@@ -264,7 +269,7 @@
         layout.hidden = false;
       })
       .catch(function (error) {
-        showError(panel, tab, 'Could not load ' + tab.dataset.src + ' (' + error.message + ').');
+        showError(panel, 'Could not load ' + tab.dataset.src + ' (' + error.message + ').');
       });
   }
 

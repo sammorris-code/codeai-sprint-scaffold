@@ -98,19 +98,25 @@ fine). Not the repository itself yet, since you do not have it.
 Now type this into the session:
 
 ```
-Clone https://github.com/sammorris-code/codeai-sprint-scaffold into this folder,
-then tell me what you did.
+Clone https://github.com/sammorris-code/codeai-sprint-scaffold into this folder.
+Don't summarize it yet — I'll ask.
 ```
 
-Claude will ask permission to run a command. Say yes. It will create a folder
-called `codeai-sprint-scaffold` containing your clone.
+Claude will ask permission to run a command before it runs anything. Say yes.
+This is worth a moment: nothing has touched your disk yet, and you are being
+asked first. That approve-before-it-happens pattern is the whole safety model,
+and you will meet it again in exercise 2 as a diff.
 
-Now point Desktop at that folder specifically: **Select folder** again, and this
-time choose the new `codeai-sprint-scaffold` folder. Everything from here happens
-inside it.
+It will create a folder called `codeai-sprint-scaffold` containing your clone.
 
-Ask a few questions before changing anything. Asking is free and cannot break
-anything:
+Now start a **new chat**, choose **Local** again, and this time select the
+`codeai-sprint-scaffold` folder itself. You cannot change folders inside a chat
+that is already running, and this is not a detour: a session that *starts* inside
+the repository is the kind that reads the project's own instructions, which is
+what the next few questions are meant to show you.
+
+Everything from here happens in that new chat. Ask a few questions before
+changing anything — asking is free and cannot break anything:
 
 ```
 What is this repository? Summarize the structure.
