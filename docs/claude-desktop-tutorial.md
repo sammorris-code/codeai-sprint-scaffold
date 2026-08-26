@@ -98,7 +98,7 @@ fine). Not the repository itself yet, since you do not have it.
 Now type this into the session, replacing the URL with the one for our repo:
 
 ```
-Clone [https://github.com/OUR-ORG/codeai-sprint-scaffold](https://github.com/sammorris-code/codeai-sprint-scaffold) into this folder,
+Clone https://github.com/OUR-ORG/codeai-sprint-scaffold into this folder,
 then tell me what you did.
 ```
 
