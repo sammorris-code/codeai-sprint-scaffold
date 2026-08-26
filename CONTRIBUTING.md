@@ -65,8 +65,9 @@ Where to put it, so merges stay boring:
   likely to give someone a painful conflict.
 
 One practical note: a page that fetches files at runtime will not work when
-opened straight from a file path — browsers block that. Serve it with
-`python3 -m http.server 8000` and it behaves.
+opened straight from a file path — browsers block that. Serve the folder instead
+and it behaves: `python3 -m http.server 8000` on macOS or Linux,
+`python -m http.server 8000` on Windows, which does not install a `python3`.
 
 ## Reviewing a pull request
 

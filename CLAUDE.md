@@ -55,7 +55,7 @@ What replaces the bans is ordinary judgment:
   `<fieldset>` and `<legend>` for grouped inputs, `<caption>` on tables (use
   `class="visually-hidden"` when it would be redundant on screen).
 - Relative paths for all links and stylesheets, so the site works from a file
-  path, `python3 -m http.server`, GitHub Pages, and Netlify without changes.
+  path, a local static server, GitHub Pages, and Netlify without changes.
 - One folder per tool under `tools/`, containing `index.html`.
 - Interface copy is plain and specific. Name things by what the user does, not by
   how the system works. Buttons say what happens: "See recommendations", not
@@ -69,7 +69,8 @@ There is no test suite. Open the page in a browser — directly from the file pa
 if it does not need a server, otherwise:
 
 ```bash
-python3 -m http.server 8000
+python3 -m http.server 8000    # macOS, Linux
+python -m http.server 8000     # Windows, which has no python3
 ```
 
 Then tab through anything interactive to confirm it is reachable and operable by

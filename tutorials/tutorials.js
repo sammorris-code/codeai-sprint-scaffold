@@ -13,8 +13,9 @@
    something it does not understand, add it here.
 
    Note: fetch() cannot read files from a file:// path, so this page needs to
-   be served. python3 -m http.server 8000 is enough. The page says so itself
-   rather than sitting there empty.
+   be served. Any static server does — python3 -m http.server 8000 on macOS or
+   Linux, python -m http.server 8000 on Windows. The page says so itself rather
+   than sitting there empty.
    ========================================================================== */
 
 (function () {
@@ -244,8 +245,10 @@
     if (location.protocol === 'file:') {
       showError(panel, tab,
         'This page reads the markdown files at runtime, which browsers block ' +
-        'on a file:// path. Serve the folder — <code>python3 -m http.server 8000</code> — ' +
-        'and reload.');
+        'on a file:// path. Serve the folder and reload — ' +
+        '<code>python3 -m http.server 8000</code> on macOS or Linux, ' +
+        '<code>python -m http.server 8000</code> on Windows — ' +
+        'then open <code>http://localhost:8000/tutorials/</code>.');
       return;
     }
 

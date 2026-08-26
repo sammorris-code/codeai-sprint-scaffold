@@ -78,16 +78,28 @@ pointing at `#` anchors. Those are unfinished, not protected — wire them up.
 
 ## Running it locally
 
-There is no build step today. Open `index.html` in a browser and it works.
+There is no build step today. Open `index.html` in a browser and it works, and
+for most work that is all you need — the deployed site and its per-pull-request
+previews cover the rest.
 
-Serving it is the safer habit, and it is required for any page that fetches
-files at runtime:
+One page is the exception. `/tutorials/` builds itself by fetching the files in
+`docs/` at runtime, and browsers block that when a page is opened from a file
+path. To see that page locally, serve the folder instead.
 
-```
+**macOS or Linux:**
+
+```bash
 python3 -m http.server 8000
 ```
 
-Then visit `http://localhost:8000`.
+**Windows:**
+
+```powershell
+python -m http.server 8000
+```
+
+Windows installs the command as `python`, not `python3`; if neither is found,
+try `py -m http.server 8000`. Then visit `http://localhost:8000`.
 
 ## Getting it online
 
