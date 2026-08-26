@@ -95,7 +95,7 @@ Open Claude Desktop and click the **Code** tab at the top center. Choose
 **Select folder** and pick the folder where you keep projects (Documents is
 fine). Not the repository itself yet, since you do not have it.
 
-Now type this into the session, replacing the URL with the one for our repo:
+Now type this into the session:
 
 ```
 Clone https://github.com/sammorris-code/codeai-sprint-scaffold into this folder,
@@ -252,11 +252,19 @@ local `main` is still the old version.
 Switch to main and pull, then confirm my change is there.
 ```
 
-Optional tidying, now that the branch has served its purpose:
+Now tidy up, because the branch has served its purpose. GitHub already deleted
+its own copy the moment the pull request merged — this repository is set up to do
+that automatically — so what is left is the copy on your machine, and the stale
+note your computer still keeps about the GitHub one:
 
 ```
-Delete the branch I just merged, locally and on GitHub.
+Delete my local copy of the branch I just merged, and clear out any references
+to branches that no longer exist on GitHub.
 ```
+
+If Claude tells you the branch cannot be deleted because it has unmerged commits,
+do not force it. That message means something on the branch never made it into
+`main`, which is worth understanding before you throw it away.
 
 **You have:** completed the entire loop once. Everything after this is variations
 and problems.

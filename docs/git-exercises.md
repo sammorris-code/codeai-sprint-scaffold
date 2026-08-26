@@ -46,8 +46,10 @@ The `pull` matters because merging happened on GitHub, not on your laptop — un
 you pull, your local `main` does not contain your own merged work, let alone
 anyone else's. `--prune` clears out remote-tracking references to branches GitHub
 already deleted, so `git branch -a` keeps showing you real branches instead of
-ghosts. If `git branch -d` refuses, it is telling you the branch has commits that
-never made it into `main` — worth a look before you force it.
+ghosts — this repository deletes the branch on GitHub automatically when a pull
+request merges, so `--prune` usually has something to clean up. If `git branch -d`
+refuses, it is telling you the branch has commits that never made it into `main`
+— worth a look before you force it.
 
 Then you are back at the block above, ready to pull and branch again.
 
@@ -56,7 +58,7 @@ Then you are back at the block above, ready to pull and branch again.
 ## Exercise 1 — Get the repository and look around
 
 ```
-git clone <repo-url>
+git clone https://github.com/sammorris-code/codeai-sprint-scaffold
 cd codeai-sprint-scaffold
 ```
 
