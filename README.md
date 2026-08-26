@@ -20,9 +20,24 @@ tools/pathway-builder/              Candidate #3c
 tools/resource-generator/           Candidate #4
 tools/workshop-builder/             Candidate #5
 tools/change-impact-tracker/        Candidate #6 (internal)
-docs/git-exercises.md               Five exercises, in order
+CLAUDE.md                           Project instructions for Claude Code sessions
+docs/git-exercises.md               Track 1: five git exercises, in order
+docs/claude-code-exercises.md       Track 2: seven Claude Code exercises, in order
 CONTRIBUTING.md                     The short version
 ```
+
+## Two learning tracks
+
+They are independent, and you can do either first.
+
+**`docs/git-exercises.md`** — git by hand. Branch, commit, pull request, merge
+conflict, review. About an hour. Start here if you have never opened a pull
+request.
+
+**`docs/claude-code-exercises.md`** — the same repository through Claude Code,
+starting from nothing installed. About 90 minutes. Doing one manual pull request
+first is worth it, because then you can tell what Claude is actually doing on
+your behalf.
 
 ## The three constraints
 
