@@ -9,6 +9,50 @@ when something is due.
 
 ---
 
+## Before you start anything
+
+Every time you sit down to work — exercise 2 onward, and every real task after
+that — do these two things in this order:
+
+```
+git checkout main
+git pull                            get everyone else's merged work
+git checkout -b yourname/what-it-does
+```
+
+Pull first, branch second. The reason is that a branch is a copy of whatever
+`main` looked like at the moment you created it. If you branched on Monday and it
+is now Thursday, you are editing Monday's version of the site — and everything
+your teammates merged in between is missing from your copy. That gap is where
+most avoidable conflicts come from. Pulling first means your branch starts from
+what everyone has agreed on, so the only things you can conflict with are changes
+made while you were actually working.
+
+Thirty seconds at the start. It is the single highest-value habit on this list.
+
+## After a merge
+
+Once your pull request is merged on GitHub, your branch has done its job. Get
+back to a clean starting point:
+
+```
+git checkout main
+git pull                            bring your merged work down into main
+git fetch --prune                   forget branches that no longer exist on GitHub
+git branch -d yourname/what-it-does delete your local copy of the finished branch
+```
+
+The `pull` matters because merging happened on GitHub, not on your laptop — until
+you pull, your local `main` does not contain your own merged work, let alone
+anyone else's. `--prune` clears out remote-tracking references to branches GitHub
+already deleted, so `git branch -a` keeps showing you real branches instead of
+ghosts. If `git branch -d` refuses, it is telling you the branch has commits that
+never made it into `main` — worth a look before you force it.
+
+Then you are back at the block above, ready to pull and branch again.
+
+---
+
 ## Exercise 1 — Get the repository and look around
 
 ```
@@ -37,8 +81,14 @@ This one touches a file nobody else is touching, so it will merge cleanly. The
 point is to complete the whole loop once without friction.
 
 ```
+git checkout main
+git pull
 git checkout -b yourname/claim-workshop-builder
 ```
+
+That is the "Before you start anything" block above. You just cloned, so the pull
+will report *Already up to date* — run it anyway, so the habit is attached to
+starting work rather than to remembering.
 
 Open your tool's `index.html`. Find this near the top:
 
@@ -57,6 +107,9 @@ git push -u origin yourname/claim-workshop-builder
 Go to GitHub. It will offer to open a pull request. Open it. Ask someone to
 approve it. Merge it.
 
+Then run the "After a merge" block above. Your first merged branch is the easiest
+possible place to practice cleaning up after one.
+
 **You learned:** branch, add, commit, push, pull request, merge.
 
 ---
@@ -70,6 +123,11 @@ git checkout main
 git pull
 git checkout -b yourname/add-to-team-list
 ```
+
+Same three lines as last time. This is the pull that matters — if you skip it,
+you branch from a version of `index.html` that is missing the name someone merged
+five minutes ago, and you have manufactured a conflict before you have typed
+anything.
 
 In `index.html`, find the "Who is working on this" list. Add one line for
 yourself, in alphabetical order by first name:
@@ -167,7 +225,8 @@ git add . && git commit     save it
 ```
 
 Everything else you can look up. And nothing you do on a branch can hurt `main`,
-which is the whole reason branches exist.
+which is the whole reason branches exist — as long as the work is actually on a
+branch. `CONTRIBUTING.md` explains what goes wrong when it is not.
 
 ---
 
