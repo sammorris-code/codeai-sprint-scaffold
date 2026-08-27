@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Curriculum Change Impact Tracker — Sprint Scaffold</title>
+  <link rel="stylesheet" href="../../css/layout.css">
+  <!-- <link rel="stylesheet" href="style.css"> -->
+</head>
+<body>
+<div class="page">
+
+  <header class="site-header">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="../../">Portal</a></li>
+        <li>Curriculum Change Impact Tracker</li>
+      </ol>
+    </nav>
+    <h1>Curriculum Change Impact Tracker</h1>
+    <p>Internal tool. Staff only.</p>
+    <dl class="meta">
+      <dt>Reference</dt><dd>Candidate #6</dd>
+      <dt>Owner</dt><dd>unassigned &mdash; no owner identified before the sprint</dd>
+      <dt>Status</dt><dd>Scaffold only</dd>
+    </dl>
+  </header>
+
+  <main>
+
+    <section class="section">
+      <h2>What it does</h2>
+      <p>
+        A lesson changes. Nobody knows what else that breaks until support
+        tickets arrive. This tool answers the question before the change ships:
+        what depends on this, and who needs to know?
+      </p>
+    </section>
+
+    <section class="section">
+      <h2>Check a change</h2>
+      <form action="#impact" method="get">
+        <div class="field-row">
+          <p class="field">
+            <label for="target">What is changing</label>
+            <select id="target" name="target">
+              <option value="">Select</option>
+              <option value="lesson">A lesson</option>
+              <option value="unit">A unit</option>
+              <option value="course">A course name or structure</option>
+              <option value="tool">A student tool</option>
+            </select>
+          </p>
+          <p class="field">
+            <label for="ref">Which one</label>
+            <input type="text" id="ref" name="ref" placeholder="AIF S1 Unit 4 Lesson 6">
+          </p>
+        </div>
+        <p class="field">
+          <label for="describe">Describe the change</label>
+          <textarea id="describe" name="describe" rows="3"></textarea>
+        </p>
+        <div class="actions">
+          <button type="submit">Show downstream impact</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="section" id="impact">
+      <h2>Downstream impact</h2>
+      <p>Sample output. Seven artifacts reference this lesson.</p>
+      <div class="table-scroll">
+        <table class="data-table">
+          <caption class="visually-hidden">Artifacts affected by the proposed change</caption>
+          <thead>
+            <tr>
+              <th scope="col">Artifact</th>
+              <th scope="col">Type</th>
+              <th scope="col">How it breaks</th>
+              <th scope="col">Who owns it</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Texas TEKS CS I alignment</td>
+              <td>Standards map</td>
+              <td>Evidence citation points at removed activity</td>
+              <td>Alignment</td>
+            </tr>
+            <tr>
+              <td>AIF S1 educator deck</td>
+              <td>Slides</td>
+              <td>Week 4 slide describes the old activity</td>
+              <td>Professional learning</td>
+            </tr>
+            <tr>
+              <td>Unit 4 assessment</td>
+              <td>Assessment</td>
+              <td>Two items test content no longer taught</td>
+              <td>Curriculum</td>
+            </tr>
+            <tr>
+              <td>Pacing guide, semester view</td>
+              <td>Document</td>
+              <td>Lesson count changes by one</td>
+              <td>Curriculum</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button type="button">Notify owners</button>
+        <button type="button">Export list</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Open questions</h2>
+      <ul class="stack">
+        <li>
+          This one has no owner. That is the real obstacle, not the build. Worth
+          deciding before a sub-team picks it.
+        </li>
+        <li>Where does the dependency data come from? Nothing tracks these links today.</li>
+        <li>Is this a report you run, or something that watches and alerts?</li>
+        <li>Does a district ever see any of this?</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p><a href="../../">Back to portal</a></p>
+  </footer>
+
+</div>
+</body>
+</html>
