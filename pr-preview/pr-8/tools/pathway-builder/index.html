@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pathway Builder — Sprint Scaffold</title>
+  <link rel="stylesheet" href="../../css/layout.css">
+  <!-- <link rel="stylesheet" href="style.css"> -->
+</head>
+<body>
+<div class="page">
+
+  <header class="site-header">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="../../">Portal</a></li>
+        <li>Pathway Builder</li>
+      </ol>
+    </nav>
+    <h1>Pathway Builder</h1>
+    <dl class="meta">
+      <dt>Reference</dt><dd>Candidate #3c</dd>
+      <dt>Owner</dt><dd>unassigned</dd>
+      <dt>Status</dt><dd>Scaffold only</dd>
+    </dl>
+  </header>
+
+  <main>
+
+    <section class="section">
+      <h2>What it does</h2>
+      <p>
+        A district builds a course sequence across grades. The tool checks it.
+        It catches three kinds of mistake: a course placed before its
+        prerequisite, two courses teaching the same content, and a plan that
+        needs more instructional time than the district has.
+      </p>
+      <p>
+        One content rule to hold onto: AI Discoveries and CS Discoveries are
+        parallel versions, not a sequence. Same for AI Foundations and CS
+        Principles. A district picks one of each pair. It does not teach both in
+        order.
+      </p>
+    </section>
+
+    <section class="section">
+      <h2>Build the sequence</h2>
+      <form action="#validation" method="get">
+        <div class="table-scroll">
+          <table class="data-table">
+            <caption class="visually-hidden">Course placement by grade band</caption>
+            <thead>
+              <tr>
+                <th scope="col">Grade band</th>
+                <th scope="col">Course</th>
+                <th scope="col">Minutes per week</th>
+                <th scope="col">Weeks</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><label for="c1">Grades 6&ndash;8</label></td>
+                <td>
+                  <select id="c1" name="course-1">
+                    <option value="">None</option>
+                    <option value="aid">AI Discoveries</option>
+                    <option value="csd">CS Discoveries</option>
+                  </select>
+                </td>
+                <td>
+                  <label for="m1" class="visually-hidden">Minutes per week, grades 6 to 8</label>
+                  <input type="number" id="m1" name="minutes-1" min="0" step="5">
+                </td>
+                <td>
+                  <label for="w1" class="visually-hidden">Weeks, grades 6 to 8</label>
+                  <input type="number" id="w1" name="weeks-1" min="0" step="1">
+                </td>
+              </tr>
+              <tr>
+                <td><label for="c2">Grades 9&ndash;10</label></td>
+                <td>
+                  <select id="c2" name="course-2">
+                    <option value="">None</option>
+                    <option value="aif1">AI Foundations, Semester 1</option>
+                    <option value="csp">CS Principles</option>
+                  </select>
+                </td>
+                <td>
+                  <label for="m2" class="visually-hidden">Minutes per week, grades 9 to 10</label>
+                  <input type="number" id="m2" name="minutes-2" min="0" step="5">
+                </td>
+                <td>
+                  <label for="w2" class="visually-hidden">Weeks, grades 9 to 10</label>
+                  <input type="number" id="w2" name="weeks-2" min="0" step="1">
+                </td>
+              </tr>
+              <tr>
+                <td><label for="c3">Grades 11&ndash;12</label></td>
+                <td>
+                  <select id="c3" name="course-3">
+                    <option value="">None</option>
+                    <option value="aif2">AI Foundations, Semester 2</option>
+                    <option value="capstone">CTE capstone</option>
+                  </select>
+                </td>
+                <td>
+                  <label for="m3" class="visually-hidden">Minutes per week, grades 11 to 12</label>
+                  <input type="number" id="m3" name="minutes-3" min="0" step="5">
+                </td>
+                <td>
+                  <label for="w3" class="visually-hidden">Weeks, grades 11 to 12</label>
+                  <input type="number" id="w3" name="weeks-3" min="0" step="1">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="actions">
+          <button type="submit">Check this plan</button>
+          <button type="button">Add a grade band</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="section" id="validation">
+      <h2>What the check found</h2>
+      <p>Sample findings, hard-coded.</p>
+
+      <h3>Prerequisite errors</h3>
+      <ul class="stack">
+        <li>
+          AI Foundations Semester 2 is placed in grades 11&ndash;12, but Semester 1
+          is not in the plan. Add Semester 1 or move Semester 2 later.
+        </li>
+      </ul>
+
+      <h3>Duplicated content</h3>
+      <ul class="stack">
+        <li>
+          CS Discoveries Unit 3 and AI Foundations Semester 1 Unit 2 both cover
+          the same introduction to data. Roughly two weeks of overlap.
+        </li>
+      </ul>
+
+      <h3>Time</h3>
+      <div class="table-scroll">
+        <table class="data-table">
+          <caption class="visually-hidden">Instructional time needed against time available</caption>
+          <thead>
+            <tr>
+              <th scope="col">Grade band</th>
+              <th scope="col">Hours needed</th>
+              <th scope="col">Hours available</th>
+              <th scope="col">Difference</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Grades 6&ndash;8</td>
+              <td>90</td>
+              <td>108</td>
+              <td>18 to spare</td>
+            </tr>
+            <tr>
+              <td>Grades 9&ndash;10</td>
+              <td>135</td>
+              <td>120</td>
+              <td>15 short</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        A bar chart would carry this better than a table. That is a styling and
+        markup decision for whoever owns this page.
+      </p>
+    </section>
+
+    <section class="section">
+      <h2>Open questions</h2>
+      <ul class="stack">
+        <li>Where does unit-level time data come from? It does not exist yet in one place.</li>
+        <li>Is a plan a saved object, or a URL the district bookmarks?</li>
+        <li>How do we show an "either/or" pair without implying a sequence?</li>
+        <li>Does a district want to see the check while building, or only at the end?</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p><a href="../../">Back to portal</a></p>
+  </footer>
+
+</div>
+</body>
+</html>

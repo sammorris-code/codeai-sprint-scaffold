@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tutorials — Sprint Scaffold</title>
+  <link rel="stylesheet" href="../css/layout.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page tutorials">
+
+  <header class="site-header">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="../">Portal</a></li>
+        <li>Tutorials</li>
+      </ol>
+    </nav>
+    <h1>Tutorials</h1>
+    <p class="lede">
+      Both exercise tracks, rendered from the markdown in
+      <code>docs/</code>. The files are the source of truth — edit those and
+      this page follows.
+    </p>
+  </header>
+
+  <main>
+    <div class="tablist" role="tablist" aria-label="Tutorial tracks">
+      <button type="button"
+              role="tab"
+              id="tab-claude-desktop"
+              class="tab"
+              aria-controls="panel-claude-desktop"
+              aria-selected="true"
+              data-track="claude-desktop"
+              data-src="../docs/claude-desktop-tutorial.md">
+        <span class="tab-title">Claude Desktop tutorial</span>
+        <span class="tab-meta">Start here · 7 exercises · about 75 minutes · no terminal</span>
+      </button>
+      <button type="button"
+              role="tab"
+              id="tab-git"
+              class="tab"
+              aria-controls="panel-git"
+              aria-selected="false"
+              tabindex="-1"
+              data-track="git"
+              data-src="../docs/git-exercises.md">
+        <span class="tab-title">Git tutorial</span>
+        <span class="tab-meta">By hand, in a terminal · 5 exercises · about an hour</span>
+      </button>
+      <button type="button"
+              role="tab"
+              id="tab-claude-code"
+              class="tab"
+              aria-controls="panel-claude-code"
+              aria-selected="false"
+              tabindex="-1"
+              data-track="claude-code"
+              data-src="../docs/claude-code-exercises.md">
+        <span class="tab-title">Claude Code tutorial</span>
+        <span class="tab-meta">Terminal · 7 exercises · about 90 minutes</span>
+      </button>
+    </div>
+
+    <section role="tabpanel"
+             id="panel-claude-desktop"
+             class="panel"
+             aria-labelledby="tab-claude-desktop"
+             tabindex="0">
+      <p class="doc-status" role="status">Loading the Claude Desktop tutorial…</p>
+      <div class="doc-layout" hidden>
+        <nav class="doc-toc" aria-label="Claude Desktop tutorial contents"></nav>
+        <article class="doc"></article>
+      </div>
+    </section>
+
+    <section role="tabpanel"
+             id="panel-git"
+             class="panel"
+             aria-labelledby="tab-git"
+             tabindex="0"
+             hidden>
+      <p class="doc-status" role="status">Loading the git exercises…</p>
+      <div class="doc-layout" hidden>
+        <nav class="doc-toc" aria-label="Git tutorial contents"></nav>
+        <article class="doc"></article>
+      </div>
+    </section>
+
+    <section role="tabpanel"
+             id="panel-claude-code"
+             class="panel"
+             aria-labelledby="tab-claude-code"
+             tabindex="0"
+             hidden>
+      <p class="doc-status" role="status">Loading the Claude Code exercises…</p>
+      <div class="doc-layout" hidden>
+        <nav class="doc-toc" aria-label="Claude Code tutorial contents"></nav>
+        <article class="doc"></article>
+      </div>
+    </section>
+
+    <noscript>
+      <p class="notice">
+        This page builds itself from the files in <code>docs/</code>, which needs
+        JavaScript.
+        <a href="https://sammorris-code.github.io/codeai-sprint-scaffold/tutorials/">Read
+        the tutorials on the live site.</a>
+      </p>
+    </noscript>
+  </main>
+
+  <footer class="site-footer">
+    <p>CodeAI sprint scaffold. Public repository. No student data belongs in here.</p>
+  </footer>
+
+</div>
+<script src="tutorials.js"></script>
+</body>
+</html>
