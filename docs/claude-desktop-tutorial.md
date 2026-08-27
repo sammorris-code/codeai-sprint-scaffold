@@ -418,11 +418,13 @@ finding it opaque.
 
 ## Where to go next
 
-- **`git-exercises.md`** — the same loop typed by hand, no Claude. Worth doing
-  once. Understanding what the tool does for you is what lets you fix it when it
-  goes sideways.
-- **`claude-code-exercises.md`** — the terminal version of Claude Code, plus plan
-  mode, permission modes, and how to teach the repository new rules through
+The other two tabs on this page, and one file in the repository:
+
+- **Git tutorial** — the same loop typed by hand, no Claude. Worth doing once.
+  Understanding what the tool does for you is what lets you fix it when it goes
+  sideways.
+- **Claude Code tutorial** — Claude Code in a terminal, plus plan mode,
+  permission modes, and how to teach the repository new rules through
   `CLAUDE.md`.
-- **`../CONTRIBUTING.md`** — the short reference for this repo once you no longer
-  need a tutorial.
+- [**CONTRIBUTING.md**](https://github.com/sammorris-code/codeai-sprint-scaffold/blob/main/CONTRIBUTING.md)
+  — the short reference for this repo, for once you no longer need a tutorial.
