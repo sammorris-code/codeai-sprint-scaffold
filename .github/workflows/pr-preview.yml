@@ -1,0 +1,42 @@
+# Gives every pull request its own running copy of the site, so a reviewer can
+# click a link and see the change before approving it.
+#
+#   https://sammorris-code.github.io/codeai-sprint-scaffold/pr-preview/pr-42/
+#
+# The action posts that link as a comment on the pull request, updates it on
+# every push, and deletes the preview when the pull request closes.
+
+name: PR preview
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# One preview build per pull request at a time. A new push replaces an
+# in-flight build rather than racing it.
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v4
+
+      - name: Leave the workflows out of the preview
+        run: rm -rf .github
+
+      - name: Deploy the preview
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: .
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
+          action: auto

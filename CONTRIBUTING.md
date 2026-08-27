@@ -72,8 +72,19 @@ the deploy preview rather than a local file.
 
 ## Reviewing a pull request
 
-Look at the Files changed tab. Click the preview link if the repo is wired to
-Netlify or Vercel. Leave a comment on a specific line if something looks off.
+Look at the Files changed tab. Green lines were added, red ones removed.
+
+Then click the preview link. A bot comments one on every pull request, and it
+opens that branch's version of the site, running, before it merges:
+
+```
+https://sammorris-code.github.io/codeai-sprint-scaffold/pr-preview/pr-42/
+```
+
+Click through to the page the pull request actually changed. Reading a diff
+tells you what changed; the preview tells you whether it works. Leave a comment
+on a specific line if something looks off.
+
 Approving is a normal, low-stakes thing to do — you are not certifying the code
 is perfect, only that it should go in.
 

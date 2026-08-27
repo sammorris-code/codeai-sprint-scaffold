@@ -68,10 +68,10 @@ Two consequences worth knowing before you use them:
 - **Pages currently open straight from a file path.** Anything using `fetch()`
   or ES modules will not run from `file://` — it needs a served site. Not a
   reason to avoid it, just a thing to know when a teammate says "it's blank."
-- **A build step changes how the site deploys.** Right now `netlify.toml`
-  publishes `.` with no build command, and GitHub Pages serves the branch root.
-  Adding a toolchain means updating both and giving everyone an install step.
-  Worth doing on purpose; not worth acquiring by accident.
+- **A build step changes how the site deploys.** Right now the workflows in
+  `.github/workflows/` copy files to the `gh-pages` branch and run no build
+  command. Adding a toolchain means updating both of them and giving everyone an
+  install step. Worth doing on purpose; not worth acquiring by accident.
 
 You will still find leftover pages with buttons that do nothing and forms
 pointing at `#` anchors. Those are unfinished, not protected — wire them up.
@@ -85,22 +85,40 @@ The one exception is `/tutorials/`, which builds itself from the files in
 `docs/` at runtime and therefore only works served. Read it on the live site
 rather than locally:
 
-**https://codeai-sprint-scaffold.netlify.app/tutorials/**
+**https://sammorris-code.github.io/codeai-sprint-scaffold/tutorials/**
 
-## Getting it online
+## Where it is online
 
-Both of these serve the linked CSS correctly, and neither needs configuration.
+The site is published by GitHub Pages, from the `gh-pages` branch, by the
+workflows in `.github/workflows/`. Nothing to configure and no third-party
+account.
 
-**GitHub Pages** — Settings → Pages → Source: Deploy from a branch → `main`, root.
-Live in about a minute. Publishes one branch only, so you see changes after merge.
+**The live site** — https://sammorris-code.github.io/codeai-sprint-scaffold/
 
-**Netlify, Vercel, or Cloudflare Pages** — connect the repo once, publish
-directory `.`, no build command. The reason to prefer one of these: **every pull
-request gets its own preview URL**, posted as a comment on the PR. A reviewer
-clicks it and sees the change before approving.
+Updated automatically about a minute after anything merges to `main`.
+
+**Every pull request gets its own preview**, at a URL like:
+
+```
+https://sammorris-code.github.io/codeai-sprint-scaffold/pr-preview/pr-42/
+```
+
+A bot posts that link as a comment on the pull request, updates it every time
+you push, and deletes the preview when the pull request closes. A reviewer
+clicks it and sees the change running before approving.
 
 That preview link is what makes pull requests feel worth the trouble rather than
-like paperwork. If you set up only one thing, set up that.
+like paperwork.
+
+### How the two workflows fit together
+
+`deploy-site.yml` publishes `main` to the root of `gh-pages`. `pr-preview.yml`
+publishes each pull request to `pr-preview/pr-<number>/` on that same branch.
+The deploy job deliberately leaves `pr-preview/` alone, so publishing `main`
+never breaks a preview link on an open pull request.
+
+Both rely on every path in the site being relative, which is why a preview
+works from a deep subdirectory without changing a single link.
 
 ## Start here
 

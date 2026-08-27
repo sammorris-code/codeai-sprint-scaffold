@@ -32,10 +32,11 @@ What replaces the bans is ordinary judgment:
   ES modules, or a service worker will not run from `file://` and needs a served
   site. That is a fine trade to make — just say so, and give the page a real
   fallback rather than an empty panel.
-- **A build step is a decision, not a detail.** `netlify.toml` publishes `.` with
-  no build command, and GitHub Pages serves the branch root. A toolchain means
-  changing both and handing the team an install step they did not have before.
-  Worth doing deliberately; not worth acquiring by accident for one convenience.
+- **A build step is a decision, not a detail.** The site is published by the
+  workflows in `.github/workflows/`, which copy files to the `gh-pages` branch
+  and run no build command at all. A toolchain means changing both workflows and
+  handing the team an install step they did not have before. Worth doing
+  deliberately; not worth acquiring by accident for one convenience.
 - **Shared files still collide.** `index.html` and `css/layout.css` are touched
   by everyone. Keep changes to them small and separate from other work.
 - **Per-tool work belongs in the tool's folder** — `tools/<name>/style.css` and
@@ -54,8 +55,12 @@ What replaces the bans is ordinary judgment:
 - Plain semantic HTML5. Real `<label>` elements tied to inputs with `for`,
   `<fieldset>` and `<legend>` for grouped inputs, `<caption>` on tables (use
   `class="visually-hidden"` when it would be redundant on screen).
-- Relative paths for all links and stylesheets, so the site works from a file
-  path, a local static server, GitHub Pages, and Netlify without changes.
+- Relative paths for all links, stylesheets, scripts, and fetches. Never
+  root-absolute (`/css/layout.css`). This is load-bearing: every pull request is
+  published to `pr-preview/pr-<number>/`, and a root-absolute path escapes that
+  directory and loads the live site's file instead — so the preview silently
+  shows the wrong thing rather than failing. Relative paths also keep the site
+  working from a plain file path.
 - One folder per tool under `tools/`, containing `index.html`.
 - Interface copy is plain and specific. Name things by what the user does, not by
   how the system works. Buttons say what happens: "See recommendations", not
