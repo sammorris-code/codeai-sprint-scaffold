@@ -29,14 +29,26 @@
     <div class="tablist" role="tablist" aria-label="Tutorial tracks">
       <button type="button"
               role="tab"
+              id="tab-claude-desktop"
+              class="tab"
+              aria-controls="panel-claude-desktop"
+              aria-selected="true"
+              data-track="claude-desktop"
+              data-src="../docs/claude-desktop-tutorial.md">
+        <span class="tab-title">Claude Desktop tutorial</span>
+        <span class="tab-meta">Start here · 7 exercises · about 75 minutes · no terminal</span>
+      </button>
+      <button type="button"
+              role="tab"
               id="tab-git"
               class="tab"
               aria-controls="panel-git"
-              aria-selected="true"
+              aria-selected="false"
+              tabindex="-1"
               data-track="git"
               data-src="../docs/git-exercises.md">
         <span class="tab-title">Git tutorial</span>
-        <span class="tab-meta">5 exercises · about an hour</span>
+        <span class="tab-meta">By hand, in a terminal · 5 exercises · about an hour</span>
       </button>
       <button type="button"
               role="tab"
@@ -48,27 +60,28 @@
               data-track="claude-code"
               data-src="../docs/claude-code-exercises.md">
         <span class="tab-title">Claude Code tutorial</span>
-        <span class="tab-meta">7 exercises · about 90 minutes</span>
-      </button>
-      <button type="button"
-              role="tab"
-              id="tab-claude-desktop"
-              class="tab"
-              aria-controls="panel-claude-desktop"
-              aria-selected="false"
-              tabindex="-1"
-              data-track="claude-desktop"
-              data-src="../docs/claude-desktop-tutorial.md">
-        <span class="tab-title">Claude Desktop tutorial</span>
-        <span class="tab-meta">7 exercises · about 75 minutes · no terminal</span>
+        <span class="tab-meta">Terminal · 7 exercises · about 90 minutes</span>
       </button>
     </div>
+
+    <section role="tabpanel"
+             id="panel-claude-desktop"
+             class="panel"
+             aria-labelledby="tab-claude-desktop"
+             tabindex="0">
+      <p class="doc-status" role="status">Loading the Claude Desktop tutorial…</p>
+      <div class="doc-layout" hidden>
+        <nav class="doc-toc" aria-label="Claude Desktop tutorial contents"></nav>
+        <article class="doc"></article>
+      </div>
+    </section>
 
     <section role="tabpanel"
              id="panel-git"
              class="panel"
              aria-labelledby="tab-git"
-             tabindex="0">
+             tabindex="0"
+             hidden>
       <p class="doc-status" role="status">Loading the git exercises…</p>
       <div class="doc-layout" hidden>
         <nav class="doc-toc" aria-label="Git tutorial contents"></nav>
@@ -85,19 +98,6 @@
       <p class="doc-status" role="status">Loading the Claude Code exercises…</p>
       <div class="doc-layout" hidden>
         <nav class="doc-toc" aria-label="Claude Code tutorial contents"></nav>
-        <article class="doc"></article>
-      </div>
-    </section>
-
-    <section role="tabpanel"
-             id="panel-claude-desktop"
-             class="panel"
-             aria-labelledby="tab-claude-desktop"
-             tabindex="0"
-             hidden>
-      <p class="doc-status" role="status">Loading the Claude Desktop tutorial…</p>
-      <div class="doc-layout" hidden>
-        <nav class="doc-toc" aria-label="Claude Desktop tutorial contents"></nav>
         <article class="doc"></article>
       </div>
     </section>
