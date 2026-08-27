@@ -1,10 +1,15 @@
 # Claude Code exercises
 
-A separate track from `git-exercises.md`. Same repository, different tool.
+A separate track from the **Git tutorial**. Same repository, different tool.
 
 These start from nothing installed. You do not need to have finished the git
 exercises first, though it helps to have opened one pull request by hand before
 you watch Claude do it — you will know what it is actually doing.
+
+**If terms like branch, commit, and pull request are new to you**, the **Claude
+Desktop tutorial** in the first tab opens by defining them and walks the same
+loop without a terminal. It is the gentler way in; this track assumes you are
+comfortable at a command line.
 
 Budget about 90 minutes. Work through them in order.
 
@@ -25,15 +30,18 @@ have it), not a connector.
 
 **Pick your surface.** Two ways to run Claude Code:
 
-| | Good for | |
+| Surface | Good for | Where it is covered |
 |---|---|---|
-| **Terminal (CLI)** | People comfortable at a command line | These exercises assume this |
-| **Desktop app** | People who would rather not use a terminal at all | Same tool, graphical interface |
+| **Terminal (CLI)** | People comfortable at a command line | This tutorial |
+| **Desktop app** | People who would rather not use a terminal at all | The **Claude Desktop tutorial**, in the first tab |
 
 If you are not a developer and the terminal is unappealing, the desktop app is a
-real option, not a lesser one — see the setup docs linked at the bottom. The
-exercises below show terminal commands, but every one of them has a desktop
-equivalent, and the prompts you type to Claude are identical either way.
+real option and not a lesser one — go to the first tab rather than working
+through this track. It covers the same loop with no terminal at all, and starts
+from the assumption that you have never used git.
+
+Everything below shows terminal commands, but each has a desktop equivalent, and
+the prompts you type to Claude are identical either way.
 
 ---
 
@@ -187,7 +195,8 @@ Then let it build.
 
 If it goes somewhere you did not want, you have two outs: `/rewind` to undo
 Claude's edits, or plain `git checkout .` to throw away everything uncommitted.
-Nothing on a branch can hurt `main`.
+Nothing on a branch can hurt `main` — as long as the work is actually on a
+branch, which is why you made one first.
 
 **You learned:** plan mode, steering a plan before code exists, and how to back
 out.
@@ -215,14 +224,39 @@ For the pull request, either:
 Either way, a human reviews it. Claude opening the PR does not mean Claude
 approves the PR.
 
-**You learned:** commits and PRs from inside a session, and where the human stays
-in the loop.
+A bot posts a preview link on the pull request — a copy of the whole site built
+from your branch, running, before it merges. Open it and click through to the
+page you changed. The diff tells a reviewer what changed; the preview tells them
+whether it works.
+
+### After it merges
+
+Once someone approves and merges it, your laptop does not know yet. The merge
+happened on GitHub. Back in the session:
+
+```
+Switch to main and pull, then confirm my change is there.
+```
+
+```
+Delete my local copy of the branch that just merged, and clear out any
+references to branches that no longer exist on GitHub.
+```
+
+GitHub deletes its own copy of the branch automatically when the pull request
+merges, so only your local copy and a stale reference are left. If Claude reports
+that the branch has unmerged commits, do not force it — that means something on
+the branch never reached `main`, and it is worth understanding before you throw
+it away.
+
+**You learned:** commits and PRs from inside a session, where the human stays in
+the loop, and how to get back to a clean starting point afterwards.
 
 ---
 
 ## Exercise 6 — Hand it a merge conflict
 
-Do the git-exercises version of this first if you have not — you should see a
+Do the **Git tutorial** version of this first if you have not — you should see a
 conflict raw at least once before you watch it get resolved for you.
 
 Get into a conflict on purpose. Two people both add themselves to the "Who is

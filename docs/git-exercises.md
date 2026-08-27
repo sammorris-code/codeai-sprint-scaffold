@@ -228,13 +228,19 @@ git add . && git commit     save it
 
 Everything else you can look up. And nothing you do on a branch can hurt `main`,
 which is the whole reason branches exist — as long as the work is actually on a
-branch. `CONTRIBUTING.md` explains what goes wrong when it is not.
+branch.
+[CONTRIBUTING.md](https://github.com/sammorris-code/codeai-sprint-scaffold/blob/main/CONTRIBUTING.md)
+explains what goes wrong when it is not.
 
 ---
 
 ## Next
 
-`claude-code-exercises.md` covers the same repository through Claude Code,
-starting from nothing installed. Having done the exercises above by hand, you
-will be able to tell what it is doing for you — including exercise 6, where you
-hand it a merge conflict just like the one you resolved in exercise 3.
+The **Claude Code tutorial** tab covers the same repository through Claude Code,
+starting from nothing installed. Having done these exercises by hand, you will be
+able to tell what it is doing for you — including its exercise 6, where you hand
+it a merge conflict just like the one you resolved in exercise 3.
+
+The **Claude Desktop tutorial** tab walks the same loop with no terminal at all,
+and opens by defining the vocabulary. If any of the words here felt assumed
+rather than explained, that is where they are explained.
