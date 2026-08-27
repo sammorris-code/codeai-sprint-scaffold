@@ -114,11 +114,26 @@ like paperwork.
 
 `deploy-site.yml` publishes `main` to the root of `gh-pages`. `pr-preview.yml`
 publishes each pull request to `pr-preview/pr-<number>/` on that same branch.
-The deploy job deliberately leaves `pr-preview/` alone, so publishing `main`
-never breaks a preview link on an open pull request.
+The deploy job deliberately leaves `pr-preview/` alone while replacing the site,
+so publishing `main` never breaks a preview link on an open pull request.
 
-Both rely on every path in the site being relative, which is why a preview
-works from a deep subdirectory without changing a single link.
+Because both write to the same branch, they share one concurrency group and
+queue rather than run together. They also wait for GitHub's own Pages
+deployment to finish before pushing.
+
+Tearing a preview down is split by outcome, which is the non-obvious part. A
+pull request **closed without merging** is cleaned up by `pr-preview.yml`,
+because nothing else will run. A **merged** one is cleaned up by
+`deploy-site.yml`, which drops the previews of any pull requests no longer open
+while it publishes.
+
+That split exists so a merge causes exactly **one** push to `gh-pages`. When
+both workflows pushed — which is how this was first written — the two Pages
+deployments raced, the second failed with *"in progress deployment"*, and the
+live site quietly served stale content until somebody noticed.
+
+All of it relies on every path in the site being relative, which is why a
+preview works from a deep subdirectory without a single link being changed.
 
 ## Start here
 
