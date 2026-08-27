@@ -1,0 +1,69 @@
+# Publishes main to the gh-pages branch, which is what GitHub Pages serves.
+#
+# The site has no build step, so "building" is copying files. The one piece of
+# care needed: pull request previews also live on gh-pages, under pr-preview/,
+# and this job must not wipe them while it is replacing everything else.
+
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Never let two deploys write to gh-pages at once.
+concurrency:
+  group: gh-pages-write
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish to gh-pages
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Set the site aside before switching branches. .github holds the
+          # workflows, which are not part of the site.
+          mkdir /tmp/site
+          rsync -a --exclude '.git' --exclude '.github' ./ /tmp/site/
+
+          # Switch to gh-pages, creating it on the first ever deploy.
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages
+            git checkout gh-pages
+          else
+            git checkout --orphan gh-pages
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          # Clear the old copy of the site, but leave the open pull request
+          # previews standing. Deleting pr-preview/ here would break every
+          # preview link posted on an open PR.
+          find . -mindepth 1 -maxdepth 1 \
+            ! -name '.git' \
+            ! -name 'pr-preview' \
+            -exec rm -rf {} +
+
+          rsync -a /tmp/site/ ./
+
+          git add -A
+          if git diff --quiet --cached; then
+            echo "No change to publish."
+          else
+            git commit -m "Publish ${GITHUB_SHA}"
+            git push origin gh-pages
+          fi

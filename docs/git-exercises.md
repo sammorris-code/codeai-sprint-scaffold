@@ -208,10 +208,10 @@ a line and click the blue `+` to leave a comment on that exact line.
 
 Leave one real comment — a question counts. Then approve it.
 
-If the repo is connected to Netlify or Vercel, there is a preview link in the
-pull request comments. Click it. You are looking at their version of the site,
-running, before it merges. This is the part that makes the whole ceremony worth
-it.
+There is a preview link in the pull request comments, posted by a bot. Click it.
+You are looking at their version of the site, running, before it merges — a
+separate copy that exists only for this pull request and disappears when it
+closes. This is the part that makes the whole ceremony worth it.
 
 **You learned:** review, line comments, preview deploys.
 

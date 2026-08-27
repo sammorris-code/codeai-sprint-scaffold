@@ -355,10 +355,11 @@ useful review comment. Then click **Approve**.
 Approving is low-stakes. You are not certifying the code is perfect. You are
 saying it should go in.
 
-If our repository is connected to Netlify or Vercel, there is a preview link in
-the pull request comments. Click it: you are looking at their version of the site
-running, before it merges. That is the thing that makes this whole ceremony feel
-worth the trouble rather than like paperwork.
+There is a preview link in the pull request comments, posted by a bot. Click it:
+you are looking at their version of the site running, before it merges — a
+separate copy that exists only for this pull request and disappears when it
+closes. That is the thing that makes this whole ceremony feel worth the trouble
+rather than like paperwork.
 
 You can also bring the branch onto your own machine to poke at it:
 
