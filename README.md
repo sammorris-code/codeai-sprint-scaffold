@@ -30,23 +30,28 @@ CONTRIBUTING.md                     The short version
 
 ## Three learning tracks
 
-They are independent, and you can do them in any order. All three are also
-readable as a web page at `/tutorials/`, which renders these same files — serve
-the site and open `tutorials/` there.
+**Read them here — this is the link to hand people:**
 
-**`docs/git-exercises.md`** — git by hand. Branch, commit, pull request, merge
-conflict, review. About an hour. Start here if you have never opened a pull
-request.
+**https://web.samandjt.us/github/tutorials/**
 
-**`docs/claude-code-exercises.md`** — the same repository through Claude Code,
-starting from nothing installed. About 90 minutes. Doing one manual pull request
-first is worth it, because then you can tell what Claude is actually doing on
-your behalf.
+That page renders the three markdown files below as tabs. The files in `docs/`
+are the source; the page is how anyone actually reads them. Do not send people
+the `.md` files.
 
-**`docs/claude-desktop-tutorial.md`** — the same loop in Claude Desktop, with no
+They are independent and can be done in any order.
+
+**`docs/claude-desktop-tutorial.md`** — the whole loop in Claude Desktop, with no
 terminal at all. About 75 minutes. Assumes you have never used git and starts by
-defining the six words. Start here if the command line is the part putting you
-off.
+defining the six words. **Start here** unless you have a reason not to.
+
+**`docs/git-exercises.md`** — git by hand, in a terminal. Branch, commit, pull
+request, merge conflict, review. About an hour. Worth doing once to understand
+what the tools are doing for you.
+
+**`docs/claude-code-exercises.md`** — the same repository through Claude Code in
+a terminal, starting from nothing installed. About 90 minutes, and it goes
+further: plan mode, permission modes, and teaching the repo new rules through
+`CLAUDE.md`.
 
 ## The one constraint
 
@@ -82,10 +87,8 @@ There is no build step and nothing to install. Open `index.html` in a browser
 and it works. Edit a tool page, reload the tab, see the change.
 
 The one exception is `/tutorials/`, which builds itself from the files in
-`docs/` at runtime and therefore only works served. Read it on the live site
-rather than locally:
-
-**https://sammorris-code.github.io/codeai-sprint-scaffold/tutorials/**
+`docs/` at runtime and therefore only works served. Read it at
+**https://web.samandjt.us/github/tutorials/** rather than locally.
 
 ## Where it is online
 
