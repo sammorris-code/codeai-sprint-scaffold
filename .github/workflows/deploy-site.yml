@@ -1,8 +1,18 @@
 # Publishes main to the gh-pages branch, which is what GitHub Pages serves.
 #
-# The site has no build step, so "building" is copying files. The one piece of
-# care needed: pull request previews also live on gh-pages, under pr-preview/,
-# and this job must not wipe them while it is replacing everything else.
+# The site has no build step, so "building" is copying files. Two pieces of care
+# are needed, both learned the hard way:
+#
+#   1. Pull request previews also live on gh-pages, under pr-preview/. This job
+#      must not wipe them while replacing everything else.
+#   2. Only one thing may write to gh-pages at a time, and GitHub's own Pages
+#      deployment must have finished before the next push arrives. Two pushes in
+#      quick succession make the second deployment fail with "in progress
+#      deployment", and the site then serves stale content until someone
+#      notices.
+#
+# Point 2 is why this workflow and pr-preview.yml share one concurrency group,
+# and why both wait for Pages to go idle before pushing.
 
 name: Deploy site
 
@@ -13,10 +23,12 @@ on:
 
 permissions:
   contents: write
+  pull-requests: read
 
-# Never let two deploys write to gh-pages at once.
+# Shared with pr-preview.yml. Both write to gh-pages, so they queue rather than
+# race. Never cancel: a half-finished publish is worse than a slow one.
 concurrency:
-  group: gh-pages-write
+  group: gh-pages
   cancel-in-progress: false
 
 jobs:
@@ -29,7 +41,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Wait for any in-flight Pages deployment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for _ in $(seq 1 30); do
+            status=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .status 2>/dev/null || echo unknown)
+            if [ "$status" != "building" ]; then
+              echo "Pages is idle (status: ${status})."
+              exit 0
+            fi
+            echo "Pages is still building; waiting."
+            sleep 10
+          done
+          echo "Pages still building after five minutes; publishing anyway."
+
       - name: Publish to gh-pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -50,15 +79,34 @@ jobs:
             git rm -rf . >/dev/null 2>&1 || true
           fi
 
-          # Clear the old copy of the site, but leave the open pull request
-          # previews standing. Deleting pr-preview/ here would break every
-          # preview link posted on an open PR.
+          # Clear the old copy of the site, but leave the previews standing.
           find . -mindepth 1 -maxdepth 1 \
             ! -name '.git' \
             ! -name 'pr-preview' \
             -exec rm -rf {} +
 
           rsync -a /tmp/site/ ./
+
+          # Collect the previews belonging to pull requests that are no longer
+          # open. When a pull request merges, its cleanup happens here rather
+          # than in a second workflow, so a merge produces exactly one push to
+          # this branch instead of two racing ones.
+          if [ -d pr-preview ]; then
+            open_prs=" $(gh pr list --state open --json number --jq '.[].number' | tr '\n' ' ') "
+            for dir in pr-preview/pr-*; do
+              [ -d "$dir" ] || continue
+              number="${dir#pr-preview/pr-}"
+              case "$open_prs" in
+                *" $number "*)
+                  echo "Keeping the preview for open pull request #${number}."
+                  ;;
+                *)
+                  echo "Removing the preview for closed pull request #${number}."
+                  rm -rf "$dir"
+                  ;;
+              esac
+            done
+          fi
 
           git add -A
           if git diff --quiet --cached; then
