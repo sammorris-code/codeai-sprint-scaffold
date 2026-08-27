@@ -3,8 +3,20 @@
 #
 #   https://sammorris-code.github.io/codeai-sprint-scaffold/pr-preview/pr-42/
 #
-# The action posts that link as a comment on the pull request, updates it on
-# every push, and deletes the preview when the pull request closes.
+# The action posts that link as a comment on the pull request and updates it on
+# every push.
+#
+# Tearing the preview down is split by outcome, on purpose:
+#
+#   - Closed WITHOUT merging: this workflow removes it, because nothing else
+#     will run.
+#   - MERGED: this workflow does nothing. The push to main triggers
+#     deploy-site.yml, which removes previews for pull requests that are no
+#     longer open as part of its own publish.
+#
+# That split is what keeps a merge to one push against gh-pages. Two pushes
+# seconds apart make GitHub's second Pages deployment fail with "in progress
+# deployment", and the live site then serves stale content.
 
 name: PR preview
 
@@ -16,14 +28,20 @@ permissions:
   contents: write
   pull-requests: write
 
-# One preview build per pull request at a time. A new push replaces an
-# in-flight build rather than racing it.
+# Shared with deploy-site.yml. Both write to gh-pages, so they queue rather than
+# race. Never cancel: a half-written preview is worse than a slow one.
 concurrency:
-  group: pr-preview-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: gh-pages
+  cancel-in-progress: false
 
 jobs:
   preview:
+    # Skip entirely when a pull request was merged — deploy-site.yml handles
+    # that case, and running here as well is what caused the race.
+    if: >-
+      github.event.action != 'closed' ||
+      github.event.pull_request.merged == false
+
     runs-on: ubuntu-latest
 
     steps:
@@ -32,6 +50,21 @@ jobs:
 
       - name: Leave the workflows out of the preview
         run: rm -rf .github
+
+      - name: Wait for any in-flight Pages deployment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for _ in $(seq 1 30); do
+            status=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .status 2>/dev/null || echo unknown)
+            if [ "$status" != "building" ]; then
+              echo "Pages is idle (status: ${status})."
+              exit 0
+            fi
+            echo "Pages is still building; waiting."
+            sleep 10
+          done
+          echo "Pages still building after five minutes; publishing anyway."
 
       - name: Deploy the preview
         uses: rossjrw/pr-preview-action@v1
