@@ -1,0 +1,102 @@
+# Contributing
+
+The short version. For practice exercises see `docs/git-exercises.md`.
+
+## The loop
+
+```
+git checkout main                   start from the shared version
+git pull                            get everyone else's merged work
+git checkout -b your-branch-name    make your own branch
+...edit files...
+git add .
+git commit -m "what you did"
+git push -u origin your-branch-name
+```
+
+Then open a pull request on GitHub. Someone reviews it. It merges.
+
+Pull first, branch second, every time — a branch is a copy of `main` as it looked
+when you made it, so branching from a stale `main` means editing a stale site.
+After the merge, `git checkout main && git pull` brings the merged work down to
+your laptop; `docs/git-exercises.md` has the full before-and-after routine.
+
+## Branch names
+
+`yourname/what-it-does` works fine. `alicia/style-workshop-builder`,
+`banks/pathway-time-chart`.
+
+Avoid working directly on `main`. Not because a commit there is destructive — it
+is not — but because `main` is the one copy everybody pulls from, and a commit
+sitting on your local `main` is invisible to everyone until you push it, and
+unreviewable once you do. It also breaks `git pull`: the moment your `main` and
+GitHub's `main` both have commits the other lacks, `pull` stops and demands you
+choose how to reconcile them, which is a decision nobody should have to make
+before they can get their teammates' work. Branch for everything, and `main`
+stays what it should be — a landing spot for reviewed work, never a workspace.
+
+## Commit messages
+
+Say what changed, in the present tense, in one line. "Add time constraint chart
+to pathway builder" tells a reader something. "updates" and "fix" do not.
+
+## Which files to touch
+
+**Your own tool folder** — go ahead, it is yours. Add pages, add a `style.css`,
+restructure the markup.
+
+**`index.html` and `css/layout.css`** — shared by everyone. Expect conflicts, and
+pull before you start. Keep changes to these small and separate from your other
+work so they are easy to review and easy to merge.
+
+## Styling and JavaScript
+
+Both are open. The scaffold shipped with no JavaScript and no visual styling so
+that the structure came first; that baseline is live, and the restrictions are
+gone. Build what your tool needs.
+
+Where to put it, so merges stay boring:
+
+- **One page's styling or behavior** — `style.css` and any scripts inside your
+  own tool folder. Uncomment the link tag already sitting in your page's
+  `<head>`.
+- **Site-wide styling** — add `css/theme.css` rather than growing
+  `css/layout.css`. `layout.css` is loaded by every page and is the file most
+  likely to give someone a painful conflict.
+
+One practical note: a page that fetches files at runtime will not work when
+opened straight from a file path — browsers block that. Everything in `tools/`
+is plain HTML and CSS, so it opens from a file path fine; if you build something
+that needs fetching, say so in your pull request, because the reviewer will need
+the deploy preview rather than a local file.
+
+## Reviewing a pull request
+
+Look at the Files changed tab. Green lines were added, red ones removed.
+
+Then click the preview link. A bot comments one on every pull request, and it
+opens that branch's version of the site, running, before it merges:
+
+```
+https://sammorris-code.github.io/codeai-sprint-scaffold/pr-preview/pr-42/
+```
+
+Click through to the page the pull request actually changed. Reading a diff
+tells you what changed; the preview tells you whether it works. Leave a comment
+on a specific line if something looks off.
+
+Approving is a normal, low-stakes thing to do — you are not certifying the code
+is perfect, only that it should go in.
+
+## If you use Claude Code
+
+`CLAUDE.md` at the repository root tells Claude Code the house rules for this
+project — no student data, where per-tool work goes, and what the conventions
+are. It is read automatically at the start of every session in this folder, so
+you do not need to re-explain them each time.
+
+If you find yourself correcting Claude on the same thing twice, add it to
+`CLAUDE.md` and open a pull request. That file is shared, and everybody's
+sessions improve when one person writes down a lesson.
+
+New to the tool? `docs/claude-code-exercises.md` starts from installation.
