@@ -231,7 +231,7 @@
   // Where the tutorials are meant to be read. Anyone who reaches this page some
   // other way — from a file path, or with JavaScript off — gets sent here, not
   // to the raw markdown. The markdown is the source; the page is the tutorial.
-  var LIVE_TUTORIALS = 'https://sammorris-code.github.io/codeai-sprint-scaffold/tutorials/';
+  var LIVE_TUTORIALS = 'https://web.samandjt.us/github/tutorials/';
 
   function showError(panel, message) {
     var status = panel.querySelector('.doc-status');
