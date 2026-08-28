@@ -6,6 +6,7 @@
   <title>Workshop Builder — Sprint Scaffold</title>
   <link rel="stylesheet" href="../../css/layout.css">
   <!-- <link rel="stylesheet" href="style.css"> -->
+  <script src="script.js" defer></script>
 </head>
 <body>
 <div class="page">
@@ -21,7 +22,7 @@
     <dl class="meta">
       <dt>Reference</dt><dd>Candidate #5</dd>
       <dt>Owner</dt><dd>Andrea</dd>
-      <dt>Status</dt><dd>Scaffold only</dd>
+      <dt>Status</dt><dd>In progress</dd>
     </dl>
   </header>
 
@@ -92,30 +93,31 @@
           <legend>Blocks to include</legend>
           <div class="field-group">
             <p class="check">
-              <input type="checkbox" id="b-orient" name="block" value="orientation">
+              <input type="checkbox" id="b-orient" name="block" value="orientation" data-minutes="20">
               <label for="b-orient">Course orientation (20 min)</label>
             </p>
             <p class="check">
-              <input type="checkbox" id="b-place" name="block" value="placement">
+              <input type="checkbox" id="b-place" name="block" value="placement" data-minutes="30">
               <label for="b-place">Curriculum placement: which course, which students (30 min)</label>
             </p>
             <p class="check">
-              <input type="checkbox" id="b-tools" name="block" value="tools">
+              <input type="checkbox" id="b-tools" name="block" value="tools" data-minutes="45">
               <label for="b-tools">Student tools walkthrough (45 min)</label>
             </p>
             <p class="check">
-              <input type="checkbox" id="b-lesson" name="block" value="lesson">
+              <input type="checkbox" id="b-lesson" name="block" value="lesson" data-minutes="60">
               <label for="b-lesson">Teach a lesson as a learner (60 min)</label>
             </p>
             <p class="check">
-              <input type="checkbox" id="b-assess" name="block" value="assessment">
+              <input type="checkbox" id="b-assess" name="block" value="assessment" data-minutes="30">
               <label for="b-assess">Assessment and grading (30 min)</label>
             </p>
             <p class="check">
-              <input type="checkbox" id="b-plan" name="block" value="planning">
+              <input type="checkbox" id="b-plan" name="block" value="planning" data-minutes="45">
               <label for="b-plan">Plan your first two weeks (45 min)</label>
             </p>
           </div>
+          <p class="field" id="block-total" aria-live="polite">Total selected: 0 minutes</p>
         </fieldset>
 
         <fieldset>
