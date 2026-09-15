@@ -1,0 +1,244 @@
+{
+  "set": {
+    "id": 1,
+    "framework": "DEMO",
+    "standard_set": "CS-DEMO",
+    "set_type": "standards",
+    "framework_year": "2026",
+    "boundary_provenance": "drafted",
+    "publishable": false
+  },
+  "items": [
+    {
+      "standard_id": 101,
+      "identifier": "DEMO-1.A.1",
+      "statement": "Put a list of items in order and describe the rule used.",
+      "nearest_csta": [
+        "DEMO-ANCHOR-1"
+      ],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "A mention with no student work.",
+        "A word match with no task behind it."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    },
+    {
+      "standard_id": 102,
+      "identifier": "DEMO-1.A.2",
+      "statement": "Compare two ways of ordering a list and justify a choice.",
+      "nearest_csta": [],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "A mention with no student work.",
+        "A word match with no task behind it."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    },
+    {
+      "standard_id": 103,
+      "identifier": "DEMO-1.B.0",
+      "statement": "Design and test a set of steps. (Umbrella heading.)",
+      "nearest_csta": [],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "Rated by rollup from its children. Never rated on its own."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    },
+    {
+      "standard_id": 104,
+      "identifier": "DEMO-1.B.1",
+      "statement": "Write a rule that chooses between two outcomes.",
+      "nearest_csta": [],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "A mention with no student work.",
+        "A word match with no task behind it."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    },
+    {
+      "standard_id": 105,
+      "identifier": "DEMO-1.B.2",
+      "statement": "Trace a set of steps and predict the result.",
+      "nearest_csta": [],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "A mention with no student work.",
+        "A word match with no task behind it."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    },
+    {
+      "standard_id": 106,
+      "identifier": "DEMO-2.A.1",
+      "statement": "Collect a small set of data and record it.",
+      "nearest_csta": [],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "A mention with no student work.",
+        "A word match with no task behind it."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    },
+    {
+      "standard_id": 107,
+      "identifier": "DEMO-2.A.2",
+      "statement": "Clean a data set and explain what was removed.",
+      "nearest_csta": [],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "A mention with no student work.",
+        "A word match with no task behind it."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    },
+    {
+      "standard_id": 108,
+      "identifier": "DEMO-2.A.3",
+      "statement": "Present a data set so another person can read it.",
+      "nearest_csta": [],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "A mention with no student work.",
+        "A word match with no task behind it."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    },
+    {
+      "standard_id": 109,
+      "identifier": "DEMO-3.A.1",
+      "statement": "Evaluate the effect of a computing choice on a group of people.",
+      "nearest_csta": [],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "Naming an effect is not evaluating one.",
+        "A discussion with no recorded student position."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    },
+    {
+      "standard_id": 110,
+      "identifier": "DEMO-3.A.2",
+      "statement": "Describe a law or rule that governs the use of data.",
+      "nearest_csta": [],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "A mention with no student work.",
+        "A word match with no task behind it."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    },
+    {
+      "standard_id": 111,
+      "identifier": "DEMO-3.A.3",
+      "statement": "Explain how a computing system changes the work people do.",
+      "nearest_csta": [],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "A mention with no student work.",
+        "A word match with no task behind it."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    },
+    {
+      "standard_id": 112,
+      "identifier": "DEMO-4.A.1",
+      "statement": "Complete forty hours of supervised work experience in an industry setting.",
+      "nearest_csta": [],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "No curriculum can meet this. It is a program requirement, not a content gap."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    },
+    {
+      "standard_id": 113,
+      "identifier": "DEMO-5.A.1",
+      "statement": "Configure a small network and document the addresses used.",
+      "nearest_csta": [],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "A mention with no student work.",
+        "A word match with no task behind it."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    },
+    {
+      "standard_id": 114,
+      "identifier": "DEMO-5.A.2",
+      "statement": "Diagnose a fault in a wired connection.",
+      "nearest_csta": [],
+      "boundary_provenance": "drafted",
+      "boundary_includes": [
+        "Students do the action the statement names, and produce something a teacher can look at."
+      ],
+      "boundary_excludes": [
+        "A mention with no student work.",
+        "A word match with no task behind it."
+      ],
+      "reviewer_verdict": null,
+      "reviewer_edit": null
+    }
+  ],
+  "total": 14,
+  "remaining": 14,
+  "_fixture_notes": [
+    "A one-time gate for each set. When every row has a verdict, the set flips to drafted+reviewed and publishable becomes true.",
+    "nearest_csta is a drafting aid and an audit trail. Do not present it as a validated crosswalk.",
+    "A drafted boundary means a rejection may be the boundary's fault, not the curriculum's. Say so on screen."
+  ]
+}
