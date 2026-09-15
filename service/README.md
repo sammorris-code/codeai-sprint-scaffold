@@ -108,7 +108,7 @@ claimed count, which rows are headings rather than standards, every warning, and
 **what drafting the boundaries will cost** — so the spend is approved before it
 happens. Run it as often as you like; it is deterministic and free.
 
-**2. Ingest it.** Needs `ANTHROPIC_API_KEY`.
+**2. Ingest it.** Needs `ANTHROPIC_API_KEY` — see *Where the key goes* below.
 
 ```bash
 curl -X POST http://localhost:8000/api/standards-sets \
@@ -139,6 +139,43 @@ does. Everything else about ingestion runs offline and free, which is why
 Ingest returns a `503` explaining what is missing, and writes nothing — so the
 document can simply be re-sent once a key is set. Boundaries are drafted before
 anything is written, so a standard never exists in the store without one.
+
+### Where the key goes
+
+Two ways. Both keep the key out of git.
+
+**A file.** Copy the example and edit it:
+
+```bash
+cp service/.env.example service/.env
+# put your real key in service/.env
+```
+
+`service/.env` is git-ignored, as is any `.env` anywhere in this repository.
+Verified: `git add -A` will not stage it. `service/.env.example` carries a
+placeholder and is meant to be committed.
+
+**Or your shell.** If you already export `ANTHROPIC_API_KEY` — for Claude Code,
+say — Compose picks it up with no file at all:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+docker compose -f service/docker-compose.yml up
+```
+
+The shell wins over the file when both are set.
+
+Either way it reaches only the `api` container. The database and the fixture
+loader never see it, because neither has any use for it.
+
+**Never put the key in `docker-compose.yml`.** That file is committed, and this
+repository is public. A key pushed here is a key you have to revoke.
+
+One caveat: Compose looks for `.env` beside the compose file it was given, so
+the file belongs at `service/.env`, not the repository root. If the file route
+does not work on your machine, export it in your shell instead — that path has
+no ambiguity. I could not run Docker where this was built, so the file route is
+reasoned from the Compose documentation rather than tested.
 
 ### Cost
 
@@ -202,8 +239,9 @@ python3 -m uvicorn service.app.main:app --reload
 
 ## Before this holds real data
 
-1. **The password.** `standards:standards` is in `docker-compose.yml`. Move it
-   to an environment variable the file does not contain.
+1. **The database password.** `standards:standards` is in
+   `docker-compose.yml`. Move it to an environment variable the file does not
+   contain, the way `ANTHROPIC_API_KEY` already is.
 2. **CORS.** `app/main.py` allows any origin. Narrow it to the interface's own
    address.
 3. **Who is asking.** There is no authentication. Every reviewer decision
