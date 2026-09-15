@@ -1,0 +1,79 @@
+# Runs the store and its API against a real Postgres, then checks that the API
+# returns what contract/fixtures/ promises.
+#
+# This is the check that keeps the arrangement honest. The interface is built
+# against the fixtures and later pointed at the service by changing one block.
+# That swap is only safe while the two agree, so something has to verify it.
+#
+# It does NOT touch how the site is published. deploy-site.yml and
+# pr-preview.yml are unchanged, and the site still has no build step. The
+# Python packages here are installed on the runner, for the service only.
+
+name: Service
+
+on:
+  pull_request:
+    paths: ['service/**', 'contract/**', '.github/workflows/service.yml']
+  push:
+    branches: [main]
+    paths: ['service/**', 'contract/**', '.github/workflows/service.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: standards
+          POSTGRES_PASSWORD: standards
+          POSTGRES_DB: standards
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U standards -d standards"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://standards:standards@localhost:5432/standards
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install the service's packages
+        run: pip install -r service/requirements.txt
+
+      - name: Rebuild the schema from its documentation and apply it
+        run: |
+          python3 service/db/build_schema.py --check
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f service/db/schema.sql
+
+      - name: Load the sample data
+        run: python3 service/load_fixtures.py
+
+      - name: Start the API
+        run: |
+          nohup python3 -m uvicorn service.app.main:app \
+            --host 127.0.0.1 --port 8000 --log-level warning > /tmp/api.log 2>&1 &
+          for _ in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8000/health > /dev/null; then
+              echo "API is up."; exit 0
+            fi
+            sleep 1
+          done
+          echo "The API did not start."; cat /tmp/api.log; exit 1
+
+      - name: Does the API return what the fixtures promise?
+        run: python3 service/test_contract.py
+
+      - name: Show the API log when something failed
+        if: failure()
+        run: cat /tmp/api.log

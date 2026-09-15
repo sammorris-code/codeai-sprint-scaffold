@@ -31,3 +31,9 @@ jobs:
       # moment this needs a dependency, every contributor needs one too.
       - name: Check the fixtures against the schemas
         run: python3 contract/validate.py
+
+      # contract/tables.md is the source of the database schema. This fails if
+      # somebody edited the generated SQL instead of the documented tables, or
+      # changed the tables and did not rebuild.
+      - name: Check the schema still matches its documentation
+        run: python3 service/db/build_schema.py --check
