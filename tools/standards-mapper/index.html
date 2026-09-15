@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Standards Mapper — Sprint Scaffold</title>
   <link rel="stylesheet" href="../../css/layout.css">
-  <!-- <link rel="stylesheet" href="style.css"> -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="page">
@@ -28,6 +28,14 @@
 
   <main>
 
+    <div class="demo-marker" role="note">
+      <p>Internal tool. Sample data.</p>
+      <p class="detail">
+        Every framework and course below is invented. Nothing on this screen is a
+        claim about a real course.
+      </p>
+    </div>
+
     <section class="section">
       <h2>What it does</h2>
       <p>
@@ -40,29 +48,39 @@
 
     <section class="section">
       <h2>Start a mapping run</h2>
-      <form action="#queue" method="get">
+      <p class="source-status" id="source-status" role="status" aria-live="polite">
+        Loading the standards sets and courses&hellip;
+      </p>
+
+      <div class="needs-serving stack" id="needs-serving" hidden>
+        <h3>This page needs to be served</h3>
+        <p>
+          You opened this page from a file on your computer. A browser will not
+          let a page read data files that way, so the menus have nothing to show.
+          That is a browser rule, not a fault in this page.
+        </p>
+        <p>To see it working, serve the folder from the top of the repository:</p>
+        <pre><code>python3 -m http.server 8000</code></pre>
+        <p>
+          Then open
+          <a href="http://localhost:8000/tools/standards-mapper/">http://localhost:8000/tools/standards-mapper/</a>.
+          Press Ctrl and C in the terminal when you are done. Every other page
+          here still opens fine straight from a file.
+        </p>
+      </div>
+
+      <form action="#queue" method="get" id="run-form">
         <div class="field-row">
           <p class="field">
-            <label for="framework">Framework</label>
-            <select id="framework" name="framework">
-              <option value="">Select a framework</option>
-              <option value="csta2026">CSTA 2026</option>
-              <option value="teks-cs1">Texas TEKS, CS I</option>
-              <option value="teks-cs2">Texas TEKS, CS II</option>
-              <option value="ca-912">California CS, grades 9&ndash;12</option>
-              <option value="ok-1">Oklahoma CS, Level 1</option>
-              <option value="ok-2">Oklahoma CS, Level 2</option>
+            <label for="framework">Standards set</label>
+            <select id="framework" name="framework" disabled>
+              <option value="">Loading standards sets&hellip;</option>
             </select>
           </p>
           <p class="field">
             <label for="course">Course</label>
-            <select id="course" name="course">
-              <option value="">Select a course</option>
-              <option value="aif-s1">AI Foundations, Semester 1</option>
-              <option value="aif-s2">AI Foundations, Semester 2</option>
-              <option value="aid">AI Discoveries</option>
-              <option value="csd">CS Discoveries</option>
-              <option value="csp">CS Principles</option>
+            <select id="course" name="course" disabled>
+              <option value="">Loading courses&hellip;</option>
             </select>
           </p>
           <p class="field">
@@ -82,8 +100,11 @@
     <section class="section" id="queue">
       <h2>Review queue</h2>
       <p>
-        Sample rows. Confidence is the tool's own estimate and carries no
-        authority — a match is not a match until a reviewer says so.
+        Sample rows, kept only so the page is not empty. <strong>This table is
+        the next piece of work.</strong> It is being replaced by a review queue
+        that shows one standard at a time with its evidence beside it. The brief
+        for that work is
+        <a href="../../contract/REVIEW-QUEUE-GUIDE.md">REVIEW-QUEUE-GUIDE.md</a>.
       </p>
       <div class="table-scroll">
         <table class="data-table">
@@ -153,12 +174,44 @@
 
     <section class="section">
       <h2>Open questions</h2>
+
+      <h3>Settled, in the data contract</h3>
+      <ul class="stack">
+        <li>
+          <strong>What happens to confirmed matches when a lesson changes
+          underneath them?</strong> Every match stores the lesson's content
+          fingerprint from the moment it was made. A scheduled job re-reads the
+          curriculum and compares. Any match whose lesson changed goes back in
+          the queue.
+        </li>
+        <li>
+          <strong>Should reviewers see the tool's confidence?</strong> No. A
+          score invites a reviewer to trust it. Two named warnings replace it:
+          <em>Lesson may not go deep enough</em> and <em>Close match, likely not
+          a real one</em>. Each one says what to go and look at.
+        </li>
+      </ul>
+
+      <h3>Still open</h3>
       <ul class="stack">
         <li>Who can confirm a match, and does confirmation need a second reader?</li>
-        <li>What happens to confirmed matches when a lesson changes underneath them?</li>
-        <li>Do we publish gaps, or only coverage?</li>
-        <li>Should reviewers see the tool's confidence at all, or does it anchor them?</li>
+        <li>
+          Do we publish gaps, or only coverage? The public view returns the gaps
+          either way. Somebody has to choose, in one place, whether to show them.
+        </li>
+        <li>
+          Is a queue of one card at a time right for somebody working through
+          forty standards, or would a dense table with only the flagged rows
+          opened be quicker?
+        </li>
       </ul>
+
+      <p>
+        The reasoning is in
+        <a href="az-sprint-standards-pipeline-briefing.md">the briefing</a>. The
+        agreed shape of the data is in
+        <a href="../../contract/README.md">the contract</a>.
+      </p>
     </section>
 
   </main>
@@ -168,5 +221,12 @@
   </footer>
 
 </div>
+
+<!-- loader.js knows where the data lives. mapper.js fills the menus with it.
+     Plain scripts, not modules: a module is blocked outright when this page is
+     opened from a file path, and then the panel explaining that could never
+     appear. -->
+<script src="loader.js"></script>
+<script src="mapper.js"></script>
 </body>
 </html>
