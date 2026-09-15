@@ -32,11 +32,17 @@ window.StandardsSource = (function () {
     paths: {
       fixtures: {
         'standards-sets': '/standards-sets.json',
-        'courses': '/courses.json'
+        'courses': '/courses.json',
+        'review-queue': '/review-queue.json',
+        'run': '/run.json',
+        'coverage': '/coverage.json'
       },
       api: {
         'standards-sets': '/standards-sets',
-        'courses': '/courses'
+        'courses': '/courses',
+        'review-queue': '/runs/1/queue',
+        'run': '/runs/1',
+        'coverage': '/runs/1/coverage'
       }
     }
   };
