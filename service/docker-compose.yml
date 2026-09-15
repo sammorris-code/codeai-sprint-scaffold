@@ -50,6 +50,13 @@ services:
       dockerfile: service/Dockerfile
     environment:
       DATABASE_URL: postgresql://standards:standards@db:5432/standards
+      # Boundary drafting, and nothing else, needs this. Empty is fine: the
+      # service starts, and characterizing a document works, without it.
+      #
+      # Compose fills it from your shell, or from service/.env if that file
+      # exists. service/.env is git-ignored. Never put the key in this file:
+      # this file IS committed, and the repository is public.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports:
       - "8000:8000"
     depends_on:
