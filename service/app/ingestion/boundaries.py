@@ -18,6 +18,8 @@ import os
 import anthropic
 from pydantic import BaseModel, Field
 
+from . import csta
+
 MODEL = "claude-opus-5"
 
 # Batched rather than one call per standard. Ten is small enough that each
@@ -57,30 +59,50 @@ Rules, in order of importance:
    are never sufficient evidence on their own, so do not write them as though
    they were.
 
-7. nearest_csta holds between 0 and 3 CSTA 2026 identifiers that cover similar
-   ground. Match on meaning, not on shared vocabulary. An empty list is an
-   honest answer and is better than a stretch. This is a drafting aid and an
-   audit trail. It is NOT a validated crosswalk and must never be presented as
-   one.
+7. nearest_csta holds between 0 and 3 identifiers, taken ONLY from the CSTA
+   reference given to you below. Never write an identifier that is not in that
+   list. Match on meaning, not on shared vocabulary. An empty list is an honest
+   answer and is better than a stretch. This is a drafting aid and an audit
+   trail. It is NOT a validated crosswalk and must never be presented as one.
+
+8. No line may repeat another. Every inclusion and every exclusion must be able
+   to change a decision on its own: if a reviewer deleted it, some lesson would
+   be judged differently. Two lines saying the same thing in different words is
+   one line and some noise.
+
+   This is NOT an instruction to be brief. A short vague boundary is the worst
+   possible outcome - it is the thing that lets a topic match count as
+   coverage. Be as specific as the standard demands, then stop repeating
+   yourself. Typically two or three inclusions (the action, the scope, the
+   evidence) and three to six exclusions, each naming a different way a lesson
+   could look like a match without being one.
 
 When the source supplies its own clarifying text, adapt that text rather than
-inventing your own, and it will be recorded as coming from the source."""
+inventing your own, and it will be recorded as coming from the source.
+
+When a CSTA standard below is a close analog, adapt its boundary language to
+the scope of the statement in front of you rather than writing from scratch.
+That is what the reference is for."""
 
 
 class DraftedBoundary(BaseModel):
     identifier: str = Field(description="The standard's identifier, copied exactly.")
     boundary_includes: list[str] = Field(
-        min_length=1,
-        description="What counts as teaching this. Concrete and observable.")
+        min_length=1, max_length=3,
+        description="What counts as teaching this. Concrete and observable. "
+                    "Usually three: the action, the scope, the evidence. No "
+                    "line repeating another.")
     boundary_excludes: list[str] = Field(
-        min_length=1,
+        min_length=2, max_length=6,
         description="What does not count. The primary defence against a false "
-                    "positive. Never leave this empty.")
+                    "positive. Each must name a DIFFERENT way a lesson could "
+                    "look like a match without being one. Never empty.")
     keywords: list[str] = Field(
         min_length=1, description="Retrieval terms. Never sufficient evidence.")
     nearest_csta: list[str] = Field(
         default_factory=list, max_length=3,
-        description="0 to 3 CSTA 2026 ids covering similar ground. Empty is honest.")
+        description="0 to 3 ids taken only from the CSTA reference supplied. "
+                    "Never invent one. Empty is honest.")
     unclear: str | None = Field(
         default=None,
         description="Set when the standard's intent cannot be read confidently. "
@@ -126,7 +148,22 @@ def _prompt_for(batch):
     return ("Draft a boundary for each of these standards.\n\n" + "\n".join(lines))
 
 
-def draft_boundaries(standards, progress=None):
+def _system_blocks(reference_text):
+    """Rules first, then the CSTA reference, with the cache breakpoint last.
+
+    Both are identical across every batch in a run, so the whole prefix is
+    written to the cache once and read cheaply by the batches after the first.
+    Everything that varies - the standards themselves - goes in the user
+    message, after the breakpoint.
+    """
+    blocks = [{"type": "text", "text": SYSTEM}]
+    if reference_text:
+        blocks.append({"type": "text", "text": reference_text})
+    blocks[-1]["cache_control"] = {"type": "ephemeral"}
+    return blocks
+
+
+def draft_boundaries(standards, progress=None, include_specialty=False):
     """Draft a boundary for each standard. Returns {identifier: DraftedBoundary}.
 
     Umbrella headings are skipped. They are rated by rollup from the standards
@@ -137,21 +174,40 @@ def draft_boundaries(standards, progress=None):
     drafting = [s for s in standards if s.hierarchy_role != "umbrella"]
     drafted = {}
 
+    # Only the CSTA standards whose grade band overlaps this document. For a
+    # 9-12 state framework that is 46 of the 196.
+    bands = {s.grade_band for s in drafting if s.grade_band}
+    reference = csta.reference_for(bands, include_specialty)
+    reference_text = csta.as_prompt(reference)
+    known_ids = csta.valid_ids(reference)
+    system = _system_blocks(reference_text)
+    invented = set()
+
     for start in range(0, len(drafting), BATCH_SIZE):
         batch = drafting[start:start + BATCH_SIZE]
         response = client.messages.parse(
             model=MODEL,
             max_tokens=16000,
-            system=[{"type": "text", "text": SYSTEM,
-                     "cache_control": {"type": "ephemeral"}}],
+            system=system,
             messages=[{"role": "user", "content": _prompt_for(batch)}],
             output_format=DraftedBatch,
         )
         for b in response.parsed_output.boundaries:
+            # An identifier the model invented is worse than an empty list: it
+            # looks like an audit trail and is not one. Drop it and say so.
+            if known_ids:
+                bad = [i for i in b.nearest_csta if i not in known_ids]
+                if bad:
+                    invented.update(bad)
+                    b.nearest_csta = [i for i in b.nearest_csta if i in known_ids]
             drafted[b.identifier] = b
         if progress:
             progress(min(start + BATCH_SIZE, len(drafting)), len(drafting),
                      response.usage)
+
+    if invented:
+        print(f"Dropped {len(invented)} CSTA identifier(s) that are not in the "
+              f"reference: {', '.join(sorted(invented)[:8])}")
 
     missing = [s.identifier for s in drafting if s.identifier not in drafted]
     if missing:
@@ -174,7 +230,10 @@ def provenance_for(standard):
 # Rough figures for a cost estimate before anybody spends anything. Measure
 # exactly with client.messages.count_tokens once credentials exist.
 CHARS_PER_TOKEN = 3.7
-PRICE_PER_MTOK = {"input": 5.00, "output": 25.00}   # claude-opus-5
+# claude-opus-5. Cache write is 1.25x input and cache read 0.1x, the standard
+# multipliers; confirm against current pricing before quoting these to anybody.
+PRICE_PER_MTOK = {"input": 5.00, "output": 25.00,
+                  "cache_write": 6.25, "cache_read": 0.50}
 OUTPUT_TOKENS_PER_STANDARD = 260
 
 
@@ -186,19 +245,32 @@ def estimate_cost(standards):
         return {"standards": 0, "estimated_usd": 0.0}
 
     batches = (len(drafting) + BATCH_SIZE - 1) // BATCH_SIZE
+
+    bands = {s.grade_band for s in drafting if s.grade_band}
+    reference = csta.reference_for(bands)
+    reference_tokens = len(csta.as_prompt(reference) or "") / CHARS_PER_TOKEN
+
     system_tokens = len(SYSTEM) / CHARS_PER_TOKEN
     body_chars = sum(len(s.statement) + len(s.clarification or "") + 80
                      for s in drafting)
-    input_tokens = system_tokens * batches + body_chars / CHARS_PER_TOKEN
+
+    # The rules and the reference are identical every batch, so they are
+    # written to the cache once and read by the rest. Without caching the
+    # reference would be re-sent six times over and dominate the bill.
+    cached = system_tokens + reference_tokens
+    fresh = body_chars / CHARS_PER_TOKEN
     output_tokens = OUTPUT_TOKENS_PER_STANDARD * len(drafting)
 
-    usd = (input_tokens / 1e6 * PRICE_PER_MTOK["input"]
+    usd = (cached / 1e6 * PRICE_PER_MTOK["cache_write"]
+           + cached * max(batches - 1, 0) / 1e6 * PRICE_PER_MTOK["cache_read"]
+           + fresh / 1e6 * PRICE_PER_MTOK["input"]
            + output_tokens / 1e6 * PRICE_PER_MTOK["output"])
     return {
         "standards": len(drafting),
         "batches": batches,
         "model": MODEL,
-        "estimated_input_tokens": round(input_tokens),
+        "csta_reference_standards": len(reference),
+        "estimated_input_tokens": round(cached + fresh),
         "estimated_output_tokens": round(output_tokens),
         "estimated_usd": round(usd, 2),
         "note": "An estimate from character counts, not a quote. The Batch API "

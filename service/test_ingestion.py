@@ -144,6 +144,48 @@ with TestClient(main.app) as c:
     check("the majority pattern is stated", "AN.A.A.N" in scheme, scheme[:100])
     check("it says they are copied verbatim", "verbatim" in scheme)
 
+    print("\nThe CSTA reference")
+    from service.app.ingestion import csta
+    from pydantic import ValidationError
+
+    check("a 9-12 framework gets CSTA's high-school standards",
+          len(csta.reference_for(["9-10", "11-12"])) == 46,
+          f"got {len(csta.reference_for(['9-10', '11-12']))}")
+    check("bands are matched by overlap, not by string equality",
+          bool(csta.grades_in("9-12") & csta.grades_in("9-10")),
+          "'9-12' and '9-10' must overlap, or the reference is never sent")
+    check("a middle-grades framework gets different standards",
+          csta.reference_for(["6-8"]) != csta.reference_for(["9-10"]))
+    check("unknown bands fall back to everything, never to nothing",
+          len(csta.reference_for([])) == 196,
+          "sending nothing silently returns the tool to guessing")
+    ref = csta.reference_for(["9-12"])
+    check("the reference carries CSTA's own boundary language",
+          "Counts:" in csta.as_prompt(ref))
+    check("every id in it is real", all(s["id"] in csta.valid_ids(ref) for s in ref))
+    check("an invented id is not in the valid set",
+          "HS-TOTALLY-MADE-UP-99" not in csta.valid_ids(ref))
+
+    print("\nNo line may repeat another")
+    def boundary(includes, excludes):
+        return DraftedBoundary(identifier="X", boundary_includes=includes,
+                               boundary_excludes=excludes, keywords=["k"])
+    try:
+        boundary(["a", "b", "c", "d"], ["x", "y"])
+        check("a fourth inclusion is refused", False, "four were accepted")
+    except ValidationError:
+        check("a fourth inclusion is refused", True)
+    try:
+        boundary(["a"], ["x"])
+        check("a single exclusion is refused", False, "one was accepted")
+    except ValidationError:
+        check("a single exclusion is refused", True)
+    try:
+        boundary(["a", "b", "c"], ["v", "w", "x", "y", "z", "z2"])
+        check("three includes and six excludes are allowed", True)
+    except ValidationError as e:
+        check("three includes and six excludes are allowed", False, str(e)[:80])
+
     print("\nThe same set cannot be ingested twice")
     with open(CSV, "rb") as f:
         r = c.post("/api/standards-sets",
