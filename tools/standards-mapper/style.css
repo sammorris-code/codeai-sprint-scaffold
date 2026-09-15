@@ -50,3 +50,18 @@
 .needs-serving code {
   white-space: pre;
 }
+
+/* --- Keyboard focus in the review queue ---------------------------------
+   Plain :focus, not :focus-visible: queue.js moves focus itself after
+   Accept, Reject, Cancel, and Back/Next (see the file's comment on why —
+   rebuilding the standard's markup would otherwise drop focus to <body>).
+   A browser's :focus-visible heuristic can decide that a focus() call made
+   from inside a click handler doesn't count as keyboard use and suppress
+   the ring right when a keyboard user needs it most. Always showing it here
+   costs a ring on a mouse click; hiding it risks a keyboard user losing
+   their place, which matters more on a screen built for school districts. */
+
+#queue-list :focus {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+}
