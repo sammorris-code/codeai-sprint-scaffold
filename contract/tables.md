@@ -320,7 +320,7 @@ disagree.
 CREATE TABLE review_event (
   id          bigserial PRIMARY KEY,
   record_id   bigint REFERENCES alignment_record(id) ON DELETE CASCADE,
-  standard_id bigint REFERENCES standard(id),
+  standard_id bigint REFERENCES standard(id) ON DELETE CASCADE,
   actor       text NOT NULL,
   action      text NOT NULL,
   from_value  text,
@@ -332,6 +332,20 @@ CREATE TABLE review_event (
 
 The boundary gate is a claim about who checked what. A claim needs a record.
 This table is also what a state asks for when it questions a number.
+
+**Both foreign keys cascade.** They did not agree at first: `record_id` cascaded
+and `standard_id` did not, which made deleting a mis-ingested standards set
+impossible — a thing you do constantly while a prototype is being built. They now
+behave the same.
+
+Cascading is the right default here because an audit event about a standard that
+no longer exists cannot be interpreted by anybody, including the state asking the
+question. The audit value is in events about live data.
+
+**If a permanent, deletion-proof audit trail is needed later, do not make these
+foreign keys orphan their events.** Forbid deleting a standards set instead, and
+supersede it — which is the same answer the multi-vintage problem needs, and
+should be solved once for both.
 
 ---
 
