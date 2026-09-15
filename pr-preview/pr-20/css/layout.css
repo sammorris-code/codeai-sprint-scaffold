@@ -1,0 +1,215 @@
+/* ==========================================================================
+   layout.css — the shared structural stylesheet
+
+   This file does LAYOUT: display, grid, flex, gap, margin, padding, width,
+   max-width, position, overflow, box-sizing.
+
+   Colors, fonts, borders, and shadows used to be banned here. They are not any
+   more — but this is still the file EVERY page loads, so keeping look out of it
+   is worth doing on purpose:
+
+     - Site-wide visual styling  ->  add css/theme.css and link it alongside
+                                     this file. Nobody has to merge it against
+                                     a grid change.
+     - One page's styling        ->  tools/<name>/style.css, linked from that
+                                     page (the link tag is already there,
+                                     commented out).
+
+   Two teams editing this file at the same time WILL collide. That is partly on
+   purpose — see docs/git-exercises.md, Exercise 4 — and partly why the routing
+   above exists. Change it when you need to; keep the changes small.
+   ========================================================================== */
+
+/* --- Reset -------------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+/* --- Page shell --------------------------------------------------------- */
+
+.page {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+.site-header {
+  padding: 1rem 0;
+}
+
+.site-footer {
+  margin-top: 3rem;
+  padding: 1rem 0;
+}
+
+/* --- Navigation --------------------------------------------------------- */
+
+.site-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.breadcrumb ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* --- Sections ----------------------------------------------------------- */
+
+.section {
+  margin: 2rem 0;
+}
+
+.section > :first-child {
+  margin-top: 0;
+}
+
+/* Two-column: main content plus a narrower rail. Collapses on small screens. */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 45rem) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Tool directory (portal index) -------------------------------------- */
+
+.tool-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 1.5rem;
+}
+
+.tool-card > :first-child {
+  margin-top: 0;
+}
+
+.tool-card > :last-child {
+  margin-bottom: 0;
+}
+
+/* --- Metadata lists ----------------------------------------------------- */
+
+/* Label/value pairs sitting side by side. */
+.meta {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.25rem 1rem;
+  margin: 0;
+}
+
+.meta dt,
+.meta dd {
+  margin: 0;
+}
+
+/* --- Forms -------------------------------------------------------------- */
+
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+}
+
+.check {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* --- Tables ------------------------------------------------------------- */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  vertical-align: top;
+}
+
+/* Horizontal scroll for wide tables on narrow screens. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+/* --- Utility ------------------------------------------------------------ */
+
+.stack > * + * {
+  margin-top: 0.75rem;
+}
+
+/* Visible to screen readers only. Keep this even after you start styling. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   START HERE WHEN YOU STYLE
+
+   Uncomment the block below and reload. It is the smallest possible change
+   that makes the tables readable — and it is also a good first pull request,
+   because you can see it work.
+
+   .data-table th,
+   .data-table td {
+     border-bottom: 1px solid;
+   }
+   ========================================================================== */
