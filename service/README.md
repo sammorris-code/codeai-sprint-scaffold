@@ -177,6 +177,30 @@ does not work on your machine, export it in your shell instead — that path has
 no ambiguity. I could not run Docker where this was built, so the file route is
 reasoned from the Compose documentation rather than tested.
 
+### The CSTA reference
+
+`service/reference/` holds CSTA 2026: 196 foundational standards and 135
+specialty ones. It is the anchor every other framework's boundaries are drafted
+against, and the only source of identifiers `nearest_csta` may contain.
+
+Only the standards whose grade band **overlaps** the document being ingested are
+sent. Band labels do not agree between frameworks — CSTA says `9-12`, Oklahoma
+says `9-10` and `11-12` — so they are compared by the grades they cover, not as
+strings. Comparing them as strings would match nothing and the reference would
+silently never be sent.
+
+For a 9-12 state framework that is 46 of the 196, about 10k tokens, written to
+the prompt cache once per run and read cheaply by every batch after the first.
+It adds roughly 8 cents to a 55-standard run.
+
+**An identifier the model returns that is not in the reference is dropped**, and
+the run says how many. A fabricated identifier is worse than an empty list: it
+looks like an audit trail and is not one.
+
+Both files are labelled *(draft)* by their source, and this repository is
+public. If that is the wrong home for them, move the folder and point `CSTA_DIR`
+at it; nothing else changes.
+
 ### Cost
 
 About **$0.44** for a 62-standard framework with Opus 5, halved on the Batch API.
