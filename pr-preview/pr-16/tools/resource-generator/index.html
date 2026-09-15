@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resource and Collateral Generator — Sprint Scaffold</title>
+  <link rel="stylesheet" href="../../css/layout.css">
+  <!-- <link rel="stylesheet" href="style.css"> -->
+</head>
+<body>
+<div class="page">
+
+  <header class="site-header">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="../../">Portal</a></li>
+        <li>Resource and Collateral Generator</li>
+      </ol>
+    </nav>
+    <h1>Resource and Collateral Generator</h1>
+    <dl class="meta">
+      <dt>Reference</dt><dd>Candidate #4</dd>
+      <dt>Owner</dt><dd>unassigned</dd>
+      <dt>Status</dt><dd>Scaffold only</dd>
+    </dl>
+  </header>
+
+  <main class="split">
+    <div>
+
+      <section class="section">
+        <h2>What it does</h2>
+        <p>
+          A district has decided what to teach. Now it has to explain that
+          decision to a school board, to families, and to students choosing
+          courses. Those documents do not exist, so somebody writes them from
+          scratch every time. This tool writes the first draft.
+        </p>
+        <p>
+          The distinction that keeps this from colliding with the Assessment
+          Engine: that tool recommends what already exists, this one produces
+          what does not.
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>Make a document</h2>
+        <form action="#draft" method="get">
+
+          <fieldset>
+            <legend>What do you need?</legend>
+            <div class="field-group">
+              <p class="check">
+                <input type="radio" id="k-board" name="kind" value="board">
+                <label for="k-board">Board presentation one-pager</label>
+              </p>
+              <p class="check">
+                <input type="radio" id="k-family" name="kind" value="family">
+                <label for="k-family">Letter to families</label>
+              </p>
+              <p class="check">
+                <input type="radio" id="k-course" name="kind" value="course">
+                <label for="k-course">Course selection flyer for students</label>
+              </p>
+              <p class="check">
+                <input type="radio" id="k-cte" name="kind" value="cte">
+                <label for="k-cte">CTE pathway alignment sheet</label>
+              </p>
+              <p class="check">
+                <input type="radio" id="k-pl" name="kind" value="pl">
+                <label for="k-pl">Professional learning plan summary</label>
+              </p>
+            </div>
+          </fieldset>
+
+          <div class="field-row">
+            <p class="field">
+              <label for="district">District name</label>
+              <input type="text" id="district" name="district" autocomplete="organization">
+            </p>
+            <p class="field">
+              <label for="plan">Use which plan?</label>
+              <select id="plan" name="plan">
+                <option value="">Select a saved plan</option>
+                <option value="p1">6&ndash;12 AI pathway, draft 2</option>
+                <option value="p2">Middle school only</option>
+              </select>
+            </p>
+          </div>
+
+          <div class="field-row">
+            <p class="field">
+              <label for="audience">Who reads this</label>
+              <input type="text" id="audience" name="audience">
+            </p>
+            <p class="field">
+              <label for="length">Length</label>
+              <select id="length" name="length">
+                <option value="1">One page</option>
+                <option value="2">Two pages</option>
+              </select>
+            </p>
+          </div>
+
+          <p class="field">
+            <label for="notes">Anything this document must say</label>
+            <textarea id="notes" name="notes" rows="3"></textarea>
+          </p>
+
+          <div class="actions">
+            <button type="submit">Generate draft</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="section" id="draft">
+        <h2>Draft</h2>
+        <p>
+          Nothing generated yet. Pick a document type and a plan, then generate.
+        </p>
+        <p>
+          An empty state is a place to point somebody at the next action, not an
+          apology. Keep that in mind when this gets built for real.
+        </p>
+      </section>
+
+    </div>
+
+    <aside class="section">
+      <h2>Open questions</h2>
+      <ul class="stack">
+        <li>Does a district edit the draft here, or download and edit elsewhere?</li>
+        <li>What formats ship — HTML, PDF, Word, all three?</li>
+        <li>How much brand control do we keep over a document a district will alter?</li>
+        <li>Is this a peer product or the output layer of the Assessment Engine?</li>
+      </ul>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <p><a href="../../">Back to portal</a></p>
+  </footer>
+
+</div>
+</body>
+</html>
