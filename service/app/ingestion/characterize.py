@@ -89,29 +89,53 @@ def _map_columns(header):
 def _describe_scheme(identifiers):
     """Describe the identifier pattern in the document's own terms.
 
-    Never invents a scheme. If the identifiers do not share a shape, that is
-    reported as a finding rather than smoothed over.
+    Never invents a scheme. The useful signal is not "how many shapes are
+    there" but "which identifiers differ from the rest", because a stray one is
+    almost always a typo in the source - and a typo in an identifier silently
+    breaks every join made against it later.
+
+    So: normalise runs of letters to A and runs of digits to N, find the
+    dominant shape, and name the outliers.
+
+    An earlier version normalised only single letters, which reported a clean
+    55-row state framework as "14 identifier shapes present". That is a false
+    alarm, and a reviewer who learns to wave this line through will wave
+    through the real one.
     """
     if not identifiers:
         return "No identifiers found in the source."
 
-    # Normalise the parts that vary WITHIN one scheme: numbers, and the single
-    # letters frameworks use for strands. DEMO-1.A.1 and DEMO-1.B.2 are one
-    # scheme, not two. Reporting them as two would be a false alarm, and a
-    # reviewer who learns to ignore this line will ignore the real ones.
-    # Letters first, then digits. The other order rewrites the "N" this very
-    # function just inserted, because N is itself a single letter.
     def shape(i):
-        i = re.sub(r"(?<![A-Za-z])[A-Za-z](?![A-Za-z])", "L", i)
+        i = re.sub(r"[A-Za-z]+", "A", i)
         return re.sub(r"\d+", "N", i)
 
-    shapes = {shape(i) for i in identifiers}
+    shapes = {}
+    for i in identifiers:
+        shapes.setdefault(shape(i), []).append(i)
+
     if len(shapes) == 1:
-        return (f"All identifiers follow the pattern {shapes.pop()} "
-                f"(N is a number, L is a letter).")
-    common = sorted(shapes)[:3]
-    return (f"{len(shapes)} identifier shapes present, for example "
-            f"{', '.join(common)}. Confirm this is intended before continuing.")
+        only = next(iter(shapes))
+        return (f"All {len(identifiers)} identifiers follow the pattern {only} "
+                f"(A is letters, N is digits).")
+
+    ranked = sorted(shapes.items(), key=lambda kv: -len(kv[1]))
+    main_shape, main_ids = ranked[0]
+    outliers = [i for _, ids in ranked[1:] for i in ids]
+
+    # A handful of strays against a clear majority: name them. This is the
+    # case that catches an OCR artefact or a mistyped identifier.
+    if len(outliers) <= max(5, len(identifiers) // 10):
+        listed = ", ".join(outliers[:5])
+        more = f" and {len(outliers) - 5} more" if len(outliers) > 5 else ""
+        return (f"{len(main_ids)} of {len(identifiers)} identifiers follow the "
+                f"pattern {main_shape} (A is letters, N is digits). "
+                f"{len(outliers)} differ: {listed}{more}. Check these against "
+                f"the source - a stray identifier is usually a typo there, and "
+                f"it is copied verbatim rather than corrected.")
+
+    return (f"{len(shapes)} identifier shapes present, the commonest being "
+            f"{main_shape} ({len(main_ids)} of {len(identifiers)}). Confirm "
+            f"this is intended before continuing.")
 
 
 def characterize_csv(raw: bytes, claimed_count: int | None = None) -> Characterization:
@@ -198,8 +222,16 @@ def characterize_csv(raw: bytes, claimed_count: int | None = None) -> Characteri
             "conservative by design, and a person must check them before any "
             "result reaches a district.")
 
-    reconciled = claimed_count is None or claimed_count == len(standards)
-    if not reconciled:
+    # None, not True, when there is nothing to check against. A green light
+    # for a check that never ran is worse than no light at all.
+    reconciled = None if claimed_count is None else claimed_count == len(standards)
+    if reconciled is None:
+        warnings.append(
+            "No claimed count was given, so the extraction was not reconciled "
+            "against anything. Find the total the document states and pass it "
+            "as claimed_count: a silent extraction gap is the failure that "
+            "poisons everything downstream, and this is the only check for it.")
+    elif not reconciled:
         warnings.append(
             f"The document claims {claimed_count} standards. {len(standards)} "
             f"were extracted. Stop and find the difference before continuing: "
