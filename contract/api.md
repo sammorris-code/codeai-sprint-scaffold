@@ -55,28 +55,47 @@ Fixture: `standards-sets.json`, and `standards-sets-empty.json` for day one.
 The interface reads this one field for the lock banner. It never re-derives the
 rule.
 
-### `POST /api/standards-sets`
-Ingest a document. Returns a characterization for the user to confirm. It writes
-nothing yet.
+### `POST /api/standards-sets/characterize`
+Read a document and report what is in it. **Writes nothing.**
 
-```json
-{"filename": "demo-cs.pdf", "content_base64": "...",
- "framework": "DEMO", "standard_set": "CS-DEMO", "set_type": "standards",
- "framework_year": "2026"}
-```
+Multipart: `file` (CSV), optional `claimed_count`.
 
-**The identity trio is required in the request.** Omit any of the three and the
-API returns `422` with `field` naming the one that is missing. It does not guess,
-and it does not default to CSTA.
+This is the step the briefing puts before everything else — report the
+characterization, agree the scope, then continue. It is deterministic and free,
+so it can be run as often as somebody likes while working out whether a document
+is what they think it is.
+
+Returns the identifier scheme, the concepts, the extracted count against the
+claimed count, how many rows are headings rather than standards, how many carry
+the source's own clarifying text, every warning, and **an estimate of what
+drafting the boundaries will cost** — so a spend is approved before it happens.
 
 Fixture: `ingest-characterization.json`.
 
-### `GET /api/standards-sets/{id}/standards`
-Fixture: `standards.json`.
+### `POST /api/standards-sets`
+Ingest the document: draft the boundaries and write the set.
+
+Multipart: `file`, plus `framework`, `standard_set`, `set_type`,
+`framework_year`, `title`, and optionally `source`, `scope`, `claimed_count`.
+
+**The identity trio is required.** Omit any of the three and the API returns
+`422` naming the one that is missing. It does not guess, and it does not default
+to CSTA.
+
+**Boundaries are drafted before anything is written**, so a standard never exists
+in the store without one. If drafting fails — no API key, a model error — nothing
+is written at all, and the document can simply be re-sent once the problem is
+fixed. A half-written set is harder to reason about than no set.
+
+The new set is always `drafted` and never publishable. A person checks the
+boundaries next.
 
 ### `GET /api/standards-sets/{id}/boundary-queue`
-The one-time boundary review for a set. Returns standards whose provenance is
-`drafted`, with the drafted text for a person to check.
+The one-time gate for a set. Returns every standard whose boundary nobody has
+checked yet, with the drafted text.
+
+A drafted boundary means a later rejection may be the boundary's fault rather
+than the curriculum's. Say so on screen.
 
 Fixture: `boundary-queue.json`.
 
@@ -85,8 +104,16 @@ Fixture: `boundary-queue.json`.
 {"verdict": "accept", "edited_includes": null, "edited_excludes": null,
  "actor": "sam.morris@code.org", "reason": null}
 ```
-`verdict` is `accept` or `edit`. When every standard in a set has a verdict, the
-set flips to `drafted+reviewed` and `publishable` becomes true.
+
+`verdict` is `accept` or `edit`; an `edit` carrying no edits is a `422`. When
+every standard in the set has a verdict, **the set flips to `drafted+reviewed`
+and `publishable` becomes true.** Only this endpoint can cause that flip, and
+that flip is what lets results reach a district.
+
+Every verdict is written to `review_event` with the actor.
+
+### `GET /api/standards-sets/{id}/standards`
+Fixture: `standards.json`.
 
 ---
 
@@ -255,6 +282,12 @@ The board packet. Server-rendered, so a district gets the same page an RP linked
 | `409 count_mismatch` | The six buckets do not sum to the candidate set |
 | `404 not_published` | A `/public` request for a record that is not approved |
 | `422 scope_note_required` | Creating a run with no stated scope |
+| `409 count_mismatch` (ingest) | The document's claimed count and the extracted count differ |
+| `409 already_ingested` | That framework, set and year is already in the store |
+| `422 unsupported_format` | The document is not a CSV; PDF and XLSX are not built yet |
+| `422 cannot_read_document` | No column looks like the identifier or the statement |
+| `503 boundary_drafting_unavailable` | No API key, so boundaries cannot be drafted. Nothing was written |
+| `502 boundary_drafting_failed` | Drafting failed. Nothing was written; re-send the document |
 
 The first one is the correction this contract exists to make. It is an error, not
 a default.

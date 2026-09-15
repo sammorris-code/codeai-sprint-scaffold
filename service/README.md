@@ -91,6 +91,69 @@ and when they disagree, somebody has to decide which one is wrong.
 
 ---
 
+## Ingesting a standards document
+
+Three steps, and the first two need no API key.
+
+**1. See what is in the document.** Writes nothing.
+
+```bash
+curl -X POST http://localhost:8000/api/standards-sets/characterize \
+  -F "file=@service/sample_documents/DEMO_CS_2026.csv" \
+  -F "claimed_count=14"
+```
+
+It reports the identifier scheme, the concepts, the extracted count against the
+claimed count, which rows are headings rather than standards, every warning, and
+**what drafting the boundaries will cost** — so the spend is approved before it
+happens. Run it as often as you like; it is deterministic and free.
+
+**2. Ingest it.** Needs `ANTHROPIC_API_KEY`.
+
+```bash
+curl -X POST http://localhost:8000/api/standards-sets \
+  -F "file=@service/sample_documents/DEMO_CS_2026.csv" \
+  -F framework=DEMO -F standard_set=CS-DEMO -F set_type=standards \
+  -F framework_year=2026 -F title="Demo Computer Science Standards"
+```
+
+**3. Check the boundaries.** `GET /api/standards-sets/{id}/boundary-queue`, then
+a verdict on each. When the last one has a verdict the set becomes publishable.
+Nothing else can cause that.
+
+### What is deterministic, and what is not
+
+| Step | Needs a model? |
+|---|---|
+| Parse the document, extract statements word for word | No |
+| Work out the identifier scheme and the hierarchy | No |
+| Reconcile the count against the document's own claim | No |
+| Draft the boundary statements | **Yes** |
+| Write the set, run the review gate | No |
+
+Only `app/ingestion/boundaries.py` calls Claude, and it is the only file that
+does. Everything else about ingestion runs offline and free, which is why
+`test_ingestion.py` can test all of it with the model call stubbed.
+
+**Without a key the service still starts and characterization still works.**
+Ingest returns a `503` explaining what is missing, and writes nothing — so the
+document can simply be re-sent once a key is set. Boundaries are drafted before
+anything is written, so a standard never exists in the store without one.
+
+### Cost
+
+About **$0.44** for a 62-standard framework with Opus 5, halved on the Batch API.
+`characterize` returns an estimate for the document in front of you. It is
+derived from character counts, not a quote — measure exactly with
+`count_tokens` once a key is set.
+
+### Formats
+
+CSV only so far. PDF and XLSX need a document-parsing step that is not built;
+the API refuses them by name rather than half-reading them.
+
+---
+
 ## What the service enforces
 
 These are not conventions. The service refuses, so no interface has to remember.
