@@ -19,6 +19,7 @@ import sys
 import httpx
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))   # so `from service...` resolves when run directly
 FIXTURES = ROOT / "contract" / "fixtures"
 BASE = os.environ.get("BASE", "http://localhost:8000")
 
@@ -51,6 +52,36 @@ def strip(node):
 
 
 c = httpx.Client(base_url=BASE, timeout=20)
+
+
+def reset():
+    """Reload the fixtures before testing.
+
+    This test changes data: it accepts a record, rejects another, and changes a
+    level. Without a reset it passes once and fails on the second run, because
+    the store now holds the decisions the first run made.
+
+    CI never saw that, since CI always starts from an empty database. Somebody
+    running it twice on their own machine would, and would reasonably conclude
+    they had broken something. A test that only works once is a trap.
+    """
+    try:
+        import psycopg
+        from service.load_fixtures import load, DSN
+        with psycopg.connect(DSN) as conn:
+            outcomes, records = load(conn)
+    except Exception as e:
+        # Fatal, not a warning. A test that cannot establish its starting state
+        # is not testing what it claims to. The first version of this printed a
+        # note and carried on, and the note scrolled past while the failures it
+        # caused looked like real regressions.
+        sys.exit(f"Could not reset the fixtures, so this test cannot run:\n"
+                 f"  {e}\n"
+                 f"Point DATABASE_URL at the database the service is using.")
+    print(f"Reset: {outcomes} outcomes, {records} records reloaded.\n")
+
+
+reset()
 
 print("Standards sets")
 api = c.get("/api/standards-sets").json()
