@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "run.schema.json",
+  "title": "Run",
+  "description": "One standards set against one course, at one snapshot.",
+  "type": "object",
+  "required": ["id", "set_id", "course_id", "snapshot_id", "scope_note", "grain", "status"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "integer"},
+    "set_id": {"type": "integer"},
+    "course_id": {"type": "integer"},
+    "snapshot_id": {"type": "integer"},
+    "scope_note": {"type": "string", "minLength": 1,
+      "description": "Required. A percentage without its scope is a wrong number."},
+    "grain": {"enum": ["lesson", "unit"]},
+    "status": {"enum": ["proposed", "in_review", "approved", "superseded"]},
+    "previous_run_id": {"type": ["integer", "null"]},
+    "created_at": {"type": "string", "format": "date-time"},
+    "approved_by": {"type": ["string", "null"]},
+    "approved_on": {"type": ["string", "null"], "format": "date-time"},
+    "counts": {
+      "type": "object",
+      "description": "For the queue header.",
+      "properties": {
+        "standards": {"type": "integer"},
+        "proposed": {"type": "integer"},
+        "accepted": {"type": "integer"},
+        "rejected": {"type": "integer"},
+        "stale": {"type": "integer"},
+        "flagged": {"type": "integer"}
+      }
+    }
+  }
+}

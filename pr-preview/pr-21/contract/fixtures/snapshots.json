@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "id": 7,
+      "source_repo": "code-dot-org/code-dot-org",
+      "source_branch": "staging",
+      "source_commit": "0000000demo7",
+      "extracted_at": "2026-09-14T03:00:00Z",
+      "is_current": true,
+      "lesson_count": 4,
+      "notes": "Fixture snapshot. Invented content."
+    },
+    {
+      "id": 6,
+      "source_repo": "code-dot-org/code-dot-org",
+      "source_branch": "staging",
+      "source_commit": "0000000demo6",
+      "extracted_at": "2026-08-30T03:00:00Z",
+      "is_current": false,
+      "lesson_count": 4,
+      "notes": "Fixture snapshot. One lesson changed since this run."
+    }
+  ],
+  "total": 2
+}
