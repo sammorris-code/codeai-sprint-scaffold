@@ -17,3 +17,8 @@ __pycache__/
 *.key
 # The example file carries no real value and is meant to be tracked.
 !.env.example
+
+# Real standards documents. Work with them locally; they are not committed.
+# service/sample_documents/ is the committed one, and holds only DEMO data.
+service/documents/*
+!service/documents/README.md
