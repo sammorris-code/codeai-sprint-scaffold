@@ -1,0 +1,52 @@
+/* style.css — Standards Mapper only.
+ *
+ * This file is linked from this page alone, so nothing here can collide with
+ * another team's work. Site-wide styling belongs in css/theme.css instead.
+ */
+
+/* --- Sample-data marker -------------------------------------------------
+   This is an internal tool reading invented data. Somebody must be able to
+   tell at a glance that a number on this screen is not a claim about a real
+   course. Do not remove this when real data arrives; change what it says. */
+
+.demo-marker {
+  border: 2px dashed currentColor;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1.5rem;
+  font-weight: 600;
+}
+
+.demo-marker p {
+  margin: 0;
+}
+
+.demo-marker .detail {
+  font-weight: 400;
+  margin-top: 0.25rem;
+}
+
+/* --- Where the data came from ------------------------------------------ */
+
+.source-status {
+  margin: 0 0 1rem;
+}
+
+/* --- The page needs serving -------------------------------------------- */
+
+.needs-serving {
+  border: 1px solid currentColor;
+  padding: 1rem 1.25rem;
+}
+
+.needs-serving > :first-child { margin-top: 0; }
+.needs-serving > :last-child { margin-bottom: 0; }
+
+.needs-serving pre {
+  overflow-x: auto;
+  padding: 0.75rem;
+  border: 1px solid currentColor;
+}
+
+.needs-serving code {
+  white-space: pre;
+}
