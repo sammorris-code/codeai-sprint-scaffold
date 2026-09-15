@@ -168,7 +168,7 @@ CREATE TABLE standard_outcome (
 CREATE TABLE review_event (
   id          bigserial PRIMARY KEY,
   record_id   bigint REFERENCES alignment_record(id) ON DELETE CASCADE,
-  standard_id bigint REFERENCES standard(id),
+  standard_id bigint REFERENCES standard(id) ON DELETE CASCADE,
   actor       text NOT NULL,
   action      text NOT NULL,
   from_value  text,

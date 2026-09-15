@@ -16,11 +16,16 @@ fixtures and then pointed at this service with one line changed.
 """
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Response
+import json
+
+from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from .db import pool, rows, one, execute
+from .ingestion.characterize import characterize_csv
+from .ingestion.boundaries import (draft_boundaries, estimate_cost,
+                                   provenance_for, NoCredentials)
 
 
 @asynccontextmanager
@@ -85,32 +90,244 @@ def list_standards(set_id: int):
     return {"items": items, "total": len(items)}
 
 
-class IngestRequest(BaseModel):
-    """The identity trio is required, and there is no default for any of it.
+class Identity(BaseModel):
+    """The identity trio, required, with no default for any of it.
 
     This is the correction the whole contract exists to make. The old schema
     turned a file that lost its identity into a CSTA 2026 file in silence, so a
     wrong label could reach a district. Missing identity is now an error.
     """
-    filename: str
     framework: str = Field(min_length=1)
     standard_set: str = Field(min_length=1)
     set_type: str = Field(pattern="^(standards|course_objectives)$")
     framework_year: str = Field(min_length=4)
+    title: str = Field(min_length=1)
+    source: str | None = None
+    scope: str | None = None
 
 
-@app.post("/api/standards-sets", status_code=202)
-def ingest(req: IngestRequest):
-    """Characterizes a document and waits for the user to confirm scope.
+@app.post("/api/standards-sets/characterize")
+async def characterize(file: UploadFile = File(...),
+                       claimed_count: int | None = Form(None)):
+    """Read a standards document and report what is in it. Writes nothing.
 
-    Writes nothing. The engine that reads the document is a separate build; this
-    endpoint exists so the interface has the real shape to work against.
+    This is the step the briefing puts before everything else: report the
+    characterization, get agreement on scope, and only then continue. It is
+    deterministic and free, so a contractor can run it as often as they like
+    while working out whether a document is what they think it is.
     """
-    return {"proposed": req.model_dump(exclude={"filename"}),
-            "awaiting": "scope_confirmation",
-            "count_reconciled": None,
-            "warnings": ["The ingestion engine is not built yet. "
-                         "This endpoint validates identity and returns the shape."]}
+    raw = await file.read()
+    if not file.filename.lower().endswith(".csv"):
+        fail(422, "unsupported_format",
+             f"{file.filename} is not a CSV. Only CSV is read so far; PDF and "
+             f"XLSX need a document-parsing step that is not built yet.",
+             "file")
+    try:
+        c = characterize_csv(raw, claimed_count)
+    except ValueError as e:
+        fail(422, "cannot_read_document", str(e), "file")
+
+    report = c.as_report()
+    report["cost_to_draft_boundaries"] = estimate_cost(c.standards)
+    report["preview"] = [
+        {"identifier": s.identifier, "statement": s.statement,
+         "concept": s.concept, "hierarchy_role": s.hierarchy_role}
+        for s in c.standards[:5]
+    ]
+    return report
+
+
+@app.post("/api/standards-sets", status_code=201)
+async def ingest(file: UploadFile = File(...),
+                 framework: str = Form(...),
+                 standard_set: str = Form(...),
+                 set_type: str = Form(...),
+                 framework_year: str = Form(...),
+                 title: str = Form(...),
+                 source: str | None = Form(None),
+                 scope: str | None = Form(None),
+                 claimed_count: int | None = Form(None)):
+    """Ingest the document: draft the boundaries and write the set.
+
+    Boundaries are drafted before anything is written, so a standard never
+    exists in the store without one. A standard with no boundary cannot be
+    evaluated against, and a half-written set is harder to reason about than
+    no set at all.
+    """
+    identity = Identity(framework=framework, standard_set=standard_set,
+                        set_type=set_type, framework_year=framework_year,
+                        title=title, source=source, scope=scope)
+    raw = await file.read()
+    try:
+        c = characterize_csv(raw, claimed_count)
+    except ValueError as e:
+        fail(422, "cannot_read_document", str(e), "file")
+
+    if not c.count_reconciled:
+        fail(409, "count_mismatch",
+             f"The document claims {c.document_claims_count} standards and "
+             f"{c.extracted_count} were extracted. Find the difference before "
+             f"ingesting: a silent extraction gap poisons everything "
+             f"downstream.", "claimed_count")
+
+    existing = one("""SELECT id FROM standards_set
+                      WHERE framework = %(f)s AND standard_set = %(s)s
+                        AND framework_year = %(y)s""",
+                   {"f": identity.framework, "s": identity.standard_set,
+                    "y": identity.framework_year})
+    if existing:
+        fail(409, "already_ingested",
+             f"{identity.framework} / {identity.standard_set} / "
+             f"{identity.framework_year} is already in the store as set "
+             f"{existing['id']}.", "standard_set")
+
+    try:
+        drafted = draft_boundaries(c.standards)
+    except NoCredentials as e:
+        fail(503, "boundary_drafting_unavailable", str(e))
+    except Exception as e:
+        fail(502, "boundary_drafting_failed",
+             f"The boundaries could not be drafted, so nothing was written. "
+             f"{e}")
+
+    with pool.connection() as conn:
+        set_row = conn.execute("""
+            INSERT INTO standards_set
+              (framework, standard_set, set_type, framework_year, title, source,
+               scope, standard_count, boundary_provenance, schema_notes)
+            VALUES (%(framework)s, %(standard_set)s, %(set_type)s,
+                    %(framework_year)s, %(title)s, %(source)s, %(scope)s,
+                    %(count)s, 'drafted', %(notes)s)
+            RETURNING id""",
+            {**identity.model_dump(), "count": c.extracted_count,
+             "notes": c.identifier_scheme}).fetchone()
+        set_id = set_row["id"]
+
+        by_identifier = {}
+        for s in c.standards:
+            b = drafted.get(s.identifier)
+            row = conn.execute("""
+                INSERT INTO standard
+                  (set_id, identifier, statement, concept, subconcept,
+                   grade_band, boundary_includes, boundary_excludes, keywords,
+                   boundary_provenance, nearest_csta, hierarchy_role,
+                   rating_rule, extras)
+                VALUES (%(set)s, %(id)s, %(statement)s, %(concept)s, %(sub)s,
+                        %(band)s, %(inc)s, %(exc)s, %(kw)s, %(prov)s, %(csta)s,
+                        %(role)s, %(rule)s, %(extras)s)
+                RETURNING id""",
+                {"set": set_id, "id": s.identifier, "statement": s.statement,
+                 "concept": s.concept, "sub": s.subconcept,
+                 "band": s.grade_band,
+                 # An umbrella heading gets no boundary of its own: it is rated
+                 # by rollup, so one could only mislead.
+                 "inc": b.boundary_includes if b else ["Rated by rollup from the "
+                        "standards beneath this heading."],
+                 "exc": b.boundary_excludes if b else ["Never rated on its own."],
+                 "kw": b.keywords if b else [s.concept.lower()],
+                 "prov": provenance_for(s),
+                 "csta": b.nearest_csta if b else [],
+                 "role": s.hierarchy_role, "rule": s.rating_rule,
+                 "extras": json.dumps({"unclear": b.unclear} if b and b.unclear else {})
+                 }).fetchone()
+            by_identifier[s.identifier] = row["id"]
+
+        # Link each standard to its heading, now that every row has an id.
+        for s in c.standards:
+            if s.parent_identifier:
+                conn.execute("UPDATE standard SET parent_id = %(p)s WHERE id = %(id)s",
+                             {"p": by_identifier[s.parent_identifier],
+                              "id": by_identifier[s.identifier]})
+        conn.commit()
+
+    return {"id": set_id,
+            "framework": identity.framework,
+            "standard_set": identity.standard_set,
+            "framework_year": identity.framework_year,
+            "standard_count": c.extracted_count,
+            "boundary_provenance": "drafted",
+            "publishable": False,
+            "warnings": c.warnings,
+            "next": f"A person must now check the boundaries. "
+                    f"GET /api/standards-sets/{set_id}/boundary-queue"}
+
+
+@app.get("/api/standards-sets/{set_id}/boundary-queue")
+def boundary_queue(set_id: int):
+    """The one-time gate for a set. Until every standard has a verdict, results
+    built on this set cannot reach a district."""
+    s = one(f"SELECT {SET_COLUMNS} FROM standards_set WHERE id = %(id)s",
+            {"id": set_id})
+    if not s:
+        fail(404, "not_found", f"No standards set with id {set_id}.", "set_id")
+    items = rows("""SELECT id AS standard_id, identifier, statement,
+                           nearest_csta, boundary_provenance, boundary_includes,
+                           boundary_excludes, hierarchy_role
+                    FROM standard
+                    WHERE set_id = %(id)s AND boundary_provenance != 'drafted+reviewed'
+                    ORDER BY id""", {"id": set_id})
+    total = one("SELECT count(*) AS n FROM standard WHERE set_id = %(id)s",
+                {"id": set_id})["n"]
+    return {"set": s, "items": items, "total": total, "remaining": len(items)}
+
+
+class Verdict(BaseModel):
+    verdict: str = Field(pattern="^(accept|edit)$")
+    edited_includes: list[str] | None = None
+    edited_excludes: list[str] | None = None
+    actor: str
+    reason: str | None = None
+
+
+@app.post("/api/standards/{standard_id}/boundary-verdict")
+def boundary_verdict(standard_id: int, v: Verdict):
+    """A person's verdict on one drafted boundary.
+
+    When every standard in the set has one, the set flips to drafted+reviewed
+    and becomes publishable. That flip is the release gate, and only this
+    endpoint can cause it.
+    """
+    std = one("SELECT id, set_id, identifier FROM standard WHERE id = %(id)s",
+              {"id": standard_id})
+    if not std:
+        fail(404, "not_found", f"No standard with id {standard_id}.", "standard_id")
+
+    if v.verdict == "edit" and not (v.edited_includes or v.edited_excludes):
+        fail(422, "nothing_edited",
+             "An 'edit' verdict must carry edited_includes or edited_excludes. "
+             "To keep the boundary as drafted, send 'accept'.", "verdict")
+
+    with pool.connection() as conn:
+        conn.execute("""
+            UPDATE standard
+               SET boundary_provenance = 'drafted+reviewed',
+                   boundary_includes = COALESCE(%(inc)s, boundary_includes),
+                   boundary_excludes = COALESCE(%(exc)s, boundary_excludes)
+             WHERE id = %(id)s""",
+            {"id": standard_id, "inc": v.edited_includes, "exc": v.edited_excludes})
+        conn.execute("""INSERT INTO review_event
+                        (standard_id, actor, action, from_value, to_value, reason)
+                        VALUES (%(id)s, %(actor)s, %(action)s, 'drafted',
+                                'drafted+reviewed', %(reason)s)""",
+                     {"id": standard_id, "actor": v.actor,
+                      "action": f"boundary_{v.verdict}", "reason": v.reason})
+
+        remaining = conn.execute("""SELECT count(*) AS n FROM standard
+                                    WHERE set_id = %(s)s
+                                      AND boundary_provenance != 'drafted+reviewed'""",
+                                 {"s": std["set_id"]}).fetchone()["n"]
+        if remaining == 0:
+            conn.execute("""UPDATE standards_set
+                            SET boundary_provenance = 'drafted+reviewed',
+                                reviewed_by = %(actor)s, reviewed_on = now()
+                            WHERE id = %(s)s""",
+                         {"s": std["set_id"], "actor": v.actor})
+        conn.commit()
+
+    return {"standard_id": standard_id, "identifier": std["identifier"],
+            "boundary_provenance": "drafted+reviewed",
+            "remaining_in_set": remaining,
+            "set_now_publishable": remaining == 0}
 
 
 # ---------------------------------------------------------------------------

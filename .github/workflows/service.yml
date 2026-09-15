@@ -74,6 +74,12 @@ jobs:
       - name: Does the API return what the fixtures promise?
         run: python3 service/test_contract.py
 
+      # Ingestion, with the model call stubbed. Everything about ingestion
+      # except drafting a boundary is deterministic, so everything except that
+      # is tested for real. No API key, no network, no spend.
+      - name: Does ingestion work end to end?
+        run: python3 service/test_ingestion.py
+
       - name: Show the API log when something failed
         if: failure()
         run: cat /tmp/api.log

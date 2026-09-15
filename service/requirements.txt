@@ -1,6 +1,18 @@
+# Pinned to the versions these tests actually ran against. When you change a
+# pin, run the tests before you commit it - a pin nobody has exercised is a
+# guess, and CI installing a different version than a developer does is how a
+# passing test hides a real incompatibility.
 fastapi==0.141.1
-uvicorn[standard]==0.38.0
-psycopg[binary]==3.2.12
-psycopg-pool==3.2.6
-pydantic==2.12.3
+uvicorn[standard]==0.53.0
+psycopg[binary]==3.3.5
+psycopg-pool==3.3.1
+pydantic==2.13.5
 httpx==0.28.1
+
+# Ingestion.
+# python-multipart lets the API accept an uploaded standards document.
+# anthropic is used for one thing only: drafting boundary statements. Every
+# other part of ingestion is deterministic and runs without it. The service
+# starts, and characterization works, with no API key set.
+python-multipart==0.0.32
+anthropic==1.6.0
