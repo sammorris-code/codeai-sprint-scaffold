@@ -163,7 +163,10 @@ async def ingest(file: UploadFile = File(...),
     except ValueError as e:
         fail(422, "cannot_read_document", str(e), "file")
 
-    if not c.count_reconciled:
+    # `is False` rather than `not`: None means nothing was checked, which is
+    # allowed but recorded. Treating None as a mismatch would refuse every
+    # document that does not state its own total, which is most of them.
+    if c.count_reconciled is False:
         fail(409, "count_mismatch",
              f"The document claims {c.document_claims_count} standards and "
              f"{c.extracted_count} were extracted. Find the difference before "
@@ -200,7 +203,10 @@ async def ingest(file: UploadFile = File(...),
                     %(count)s, 'drafted', %(notes)s)
             RETURNING id""",
             {**identity.model_dump(), "count": c.extracted_count,
-             "notes": c.identifier_scheme}).fetchone()
+             "notes": c.identifier_scheme + (
+                 "" if c.count_reconciled
+                 else " Extraction count was not reconciled against a count "
+                      "stated by the document.")}).fetchone()
         set_id = set_row["id"]
 
         by_identifier = {}

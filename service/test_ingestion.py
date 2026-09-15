@@ -117,6 +117,33 @@ with TestClient(main.app) as c:
     check("provenance comes from the document", len(sourced) == 3,
           f"3 rows carry clarifying text, found {len(sourced)}")
 
+    print("\nA document that states no total")
+    # Real state frameworks usually do not state their own count. That must not
+    # block ingestion, but it must not report a green check either.
+    from service.app.ingestion.characterize import characterize_csv
+    unstated = characterize_csv(CSV.read_bytes())
+    check("count_reconciled is None, not True", unstated.count_reconciled is None,
+          f"got {unstated.count_reconciled!r} - a green light for a check that "
+          f"never ran is worse than no light")
+    check("and it says so", any("not reconciled against anything" in w
+                               for w in unstated.warnings))
+
+    print("\nA stray identifier is named, not buried in a shape count")
+    # Two rows here carry an OCR artefact: L1 mistyped as LI. The point of the
+    # scheme line is to name those, not to report "3 shapes present".
+    strays = characterize_csv(
+        b"Code,Standard,Strand\n"
+        b"L1.CS.D.01,A standard.,Computing Systems\n"
+        b"L1.NI.CY.01,Another standard.,Networks\n"
+        b"L2.AP.PD.01,A third.,Programming\n"
+        b"LI.CS.T.01,An OCR artefact.,Computing Systems\n"
+        b"Li.CA.CVT.01,Another artefact.,Impacts\n")
+    scheme = strays.identifier_scheme
+    check("both strays are named", "LI.CS.T.01" in scheme and "Li.CA.CVT.01" in scheme,
+          scheme[:100])
+    check("the majority pattern is stated", "AN.A.A.N" in scheme, scheme[:100])
+    check("it says they are copied verbatim", "verbatim" in scheme)
+
     print("\nThe same set cannot be ingested twice")
     with open(CSV, "rb") as f:
         r = c.post("/api/standards-sets",
