@@ -100,10 +100,10 @@ window.StandardsSource = (function () {
   /* Plain words for the state of a set's boundary notes. The rule lives here
    * once. No screen re-derives it from boundary_provenance. */
   function setStatus(set) {
-    if (set.publishable) {
-      return { text: 'Checked by a person', publishable: true };
+    if (set.all_boundaries_checked) {
+      return { text: 'Checked by a person', all_boundaries_checked: true };
     }
-    return { text: 'Notes not checked yet', publishable: false };
+    return { text: 'Notes not checked yet', all_boundaries_checked: false };
   }
 
   return {

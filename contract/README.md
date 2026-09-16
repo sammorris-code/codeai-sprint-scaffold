@@ -11,6 +11,13 @@ three pieces of work that run at the same time:
 
 Nobody waits for anybody. All three read this folder and meet at the end.
 
+`REVIEW-DESIGN.md` records a decision that changes where review happens. It
+reverses the publish gate described in `tables.md`. Read it before building
+anything that reviews a boundary.
+
+`BRIEF-FOR-THE-REVIEW-TOOL.md` is the same change written for whoever picks the
+review tool back up, and carries a prompt they can hand to Claude Code.
+
 **This folder holds no real data.** Every fixture is invented. See *Fixtures*.
 
 ---

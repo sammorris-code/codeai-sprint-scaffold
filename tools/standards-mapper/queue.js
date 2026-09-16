@@ -183,10 +183,11 @@
     return wrap;
   }
 
-  /* Hard to miss, impossible to dismiss: no set has been checked by a person
-   * yet means nothing from this run can go to a district. */
+  /* Says what is true about this set's boundary notes. It used to say that
+   * nothing could reach a district until they were checked; that rule is gone
+   * (see contract/REVIEW-DESIGN.md) and the copy no longer claims it. */
   function lockBanner() {
-    if (!currentSet || currentSet.publishable) {
+    if (!currentSet || currentSet.all_boundaries_checked) {
       return null;
     }
 
@@ -199,7 +200,8 @@
 
     var p = document.createElement('p');
     p.textContent = 'Nobody has reviewed the boundary notes for this standards ' +
-      'set. These results cannot go to a district until that happens.';
+      'set. They are drafts, and a reviewer checks one when an alignment ' +
+      'turns on it.';
     banner.appendChild(p);
 
     return banner;
@@ -428,17 +430,21 @@
     downloadBtn.addEventListener('click', D.save);
     mount.appendChild(downloadBtn);
 
-    var canPublish = !!(currentSet && currentSet.publishable);
+    // Still tied to the boundary notes, which is no longer the real rule -
+    // publishing needs an approved run. Left as is deliberately: it errs
+    // toward showing less, and rewiring it is part of the rebuild.
+    var allChecked = !!(currentSet && currentSet.all_boundaries_checked);
 
     var publishBtn = document.createElement('button');
     publishBtn.type = 'button';
     publishBtn.textContent = 'Publish to district';
-    publishBtn.disabled = !canPublish;
+    publishBtn.disabled = !allChecked;
     mount.appendChild(publishBtn);
 
-    if (!canPublish) {
+    if (!allChecked) {
       var why = document.createElement('p');
-      why.textContent = 'Publishing is off until this standards set has been checked by a person.';
+      why.textContent = 'Publishing is off in this prototype until the ' +
+        'boundary notes have been checked.';
       mount.appendChild(why);
     }
 

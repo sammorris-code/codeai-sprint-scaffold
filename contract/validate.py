@@ -179,17 +179,21 @@ coverage = fixture("coverage.json")
 public = fixture("public-coverage.json")
 diff = fixture("run-diff.json")
 
-# The publish gate. publishable is computed, never asserted.
+# all_boundaries_checked is computed from boundary_provenance, never asserted.
+# It reports whether a person has checked every boundary in the set. It does
+# NOT gate publishing - see REVIEW-DESIGN.md.
 for s in sets:
     want = s["boundary_provenance"] == "drafted+reviewed"
-    if s["publishable"] != want:
+    if s["all_boundaries_checked"] != want:
         fail("standards-sets.json",
-             f"{s['framework']}/{s['standard_set']}: publishable is {s['publishable']} "
+             f"{s['framework']}/{s['standard_set']}: all_boundaries_checked is {s['all_boundaries_checked']} "
              f"but provenance is {s['boundary_provenance']!r}")
 
-# At least one set must be unpublishable, or the lock banner has nothing to show.
-if not any(not s["publishable"] for s in sets):
-    fail("standards-sets.json", "no set is unpublishable; the publish lock cannot be built")
+# At least one set must have unchecked boundaries, or the screen that shows
+# that state has nothing to show.
+if not any(not s["all_boundaries_checked"] for s in sets):
+    fail("standards-sets.json", "every set has all its boundaries checked; the "
+         "unchecked state cannot be built against")
 
 # Umbrella rows carry no records of their own.
 for item in queue["items"]:

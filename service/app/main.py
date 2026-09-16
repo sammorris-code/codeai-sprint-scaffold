@@ -59,7 +59,7 @@ SET_COLUMNS = """
     id, framework, standard_set, set_type, framework_year, title, source, scope,
     standard_count, boundary_provenance, schema_notes, supersedes, superseded_by,
     reviewed_by, reviewed_on, created_at,
-    (boundary_provenance = 'drafted+reviewed') AS publishable
+    (boundary_provenance = 'drafted+reviewed') AS all_boundaries_checked
 """
 
 
@@ -67,8 +67,13 @@ SET_COLUMNS = """
 def list_standards_sets(framework: str | None = None, set_type: str | None = None):
     """The registry. This is what replaced the hardcoded state list on the page.
 
-    publishable is computed here, from boundary_provenance, and never stored.
-    One rule, one place. No interface re-derives it.
+    all_boundaries_checked is computed here, from boundary_provenance, and
+    never stored. One rule, one place. No interface re-derives it.
+
+    It reports whether a person has checked every boundary in this set. It
+    does not decide whether anything may be published - that needs an
+    approved run and nothing else. This field was called `publishable` until
+    the set-level gate was removed, and the name outlived what it decided.
     """
     items = rows(f"""SELECT {SET_COLUMNS} FROM standards_set
                      WHERE (%(framework)s::text IS NULL OR framework = %(framework)s)
@@ -264,7 +269,7 @@ async def ingest(file: UploadFile = File(...),
             "framework_year": identity.framework_year,
             "standard_count": c.extracted_count,
             "boundary_provenance": "drafted",
-            "publishable": False,
+            "all_boundaries_checked": False,
             "nearest_csta": {
                 "with_analog": with_analog,
                 "no_analog": len(drafted) - with_analog,
@@ -317,7 +322,7 @@ def boundary_verdict(standard_id: int, v: Verdict):
     """A person's verdict on one drafted boundary.
 
     When every standard in the set has one, the set flips to drafted+reviewed
-    and becomes publishable. That flip is the release gate, and only this
+    and all_boundaries_checked turns true. That is a report, not a gate: only this
     endpoint can cause it.
     """
     std = one("SELECT id, set_id, identifier FROM standard WHERE id = %(id)s",
@@ -360,7 +365,7 @@ def boundary_verdict(standard_id: int, v: Verdict):
     return {"standard_id": standard_id, "identifier": std["identifier"],
             "boundary_provenance": "drafted+reviewed",
             "remaining_in_set": remaining,
-            "set_now_publishable": remaining == 0}
+            "all_boundaries_checked": remaining == 0}
 
 
 # ---------------------------------------------------------------------------
@@ -620,21 +625,21 @@ def coverage(run_id: int):
 
 @app.post("/api/runs/{run_id}/approve")
 def approve(run_id: int, actor: str):
-    """The release gate.
+    """The release gate. One condition now: a person approved this run.
 
-    Two conditions, both required: the run is approved by a person, and a person
-    has checked the set's boundary notes. Results built on unchecked notes
-    cannot reach a district, and that is enforced here rather than by an
-    interface remembering to.
+    It used to be two. The set's boundaries also had to have been checked, all
+    of them, before any run against it could be approved. That rule is gone -
+    see contract/REVIEW-DESIGN.md. Briefly: a boundary read on its own cannot be
+    judged, so a verdict given without a lesson in front of you is a guess that
+    looks like a check, and most boundaries in a set never decide anything at
+    all. Demanding all of them bought the appearance of rigour and little else,
+    at about 1,750 of them across the states we have to load.
+
+    Review did not go away. It moved to the alignment that makes a boundary
+    matter, where the reviewer sees a lesson, a standard, and the boundary
+    between them, and can fix either side.
     """
     run = run_or_404(run_id)
-    s = one("SELECT boundary_provenance, framework, standard_set, framework_year "
-            "FROM standards_set WHERE id = %(id)s", {"id": run["set_id"]})
-    if s["boundary_provenance"] != "drafted+reviewed":
-        fail(409, "set_not_reviewed",
-             f"This run cannot be approved. The boundary notes of "
-             f"{s['framework']} / {s['standard_set']} / {s['framework_year']} are "
-             f"{s['boundary_provenance']} and no person has checked them.", "set_id")
 
     check = coverage_for(run_id)[1]["count_check"]
     if not check["ok"]:
@@ -652,8 +657,10 @@ def approve(run_id: int, actor: str):
 # Public. Approved records from reviewed sets only. No parameter widens this.
 # ---------------------------------------------------------------------------
 
+# An approved run, and nothing about the set's boundary state. The second
+# condition that used to live here is gone; REVIEW-DESIGN.md says why.
 PUBLISHED = """
-    r.status = 'approved' AND ss.boundary_provenance = 'drafted+reviewed'
+    r.status = 'approved'
 """
 
 
@@ -668,7 +675,9 @@ def public_sets():
 
 @app.get("/public/coverage")
 def public_coverage(set_id: int, course_id: int):
-    published = one(f"""SELECT r.id FROM run r JOIN standards_set ss ON ss.id = r.set_id
+    # No join to standards_set: it was here only for the boundary condition
+    # that PUBLISHED no longer carries.
+    published = one(f"""SELECT r.id FROM run r
                         WHERE r.set_id = %(set)s AND r.course_id = %(course)s
                           AND {PUBLISHED}
                         ORDER BY r.approved_on DESC NULLS LAST LIMIT 1""",

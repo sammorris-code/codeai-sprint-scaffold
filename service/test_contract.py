@@ -90,7 +90,7 @@ check("count matches", api["total"] == fixture["total"],
       f"api {api['total']} vs fixture {fixture['total']}")
 for a, f in zip(api["items"], fixture["items"]):
     for key in ("framework", "standard_set", "set_type", "framework_year",
-                "title", "standard_count", "boundary_provenance", "publishable"):
+                "title", "standard_count", "boundary_provenance", "all_boundaries_checked"):
         check(f"{f['standard_set']}.{key}", a[key] == f[key],
               f"api {a[key]!r} vs fixture {f[key]!r}")
 
@@ -140,17 +140,31 @@ check("the two percentages differ",
       "scope must visibly change the number")
 
 print("\nThe publish gate")
-r = c.post("/api/runs/1/approve", params={"actor": "test@example.invalid"})
-check("approving an unreviewed set is refused", r.status_code == 409,
-      f"got {r.status_code}, expected 409")
-check("the refusal names the reason",
-      r.json()["detail"]["error"]["code"] == "set_not_reviewed")
+# One condition now: a person approved the run. The set's boundary state used to
+# be a second condition and no longer is - contract/REVIEW-DESIGN.md says why.
+# The set below is deliberately one nobody has reviewed, so these checks fail
+# if that condition ever creeps back in.
+gate_set = next(x for x in c.get("/api/standards-sets").json()["items"]
+                if x["id"] == 1)
+check("the set under test has boundaries nobody has checked",
+      gate_set["boundary_provenance"] != "drafted+reviewed",
+      "otherwise this section proves nothing")
+
+check("nothing is public before approval",
+      c.get("/public/standards-sets").json()["total"] == 0)
 r = c.get("/public/coverage", params={"set_id": 1, "course_id": 1})
-check("public serves nothing for it", r.status_code == 404,
+check("and public coverage is not served", r.status_code == 404,
       f"got {r.status_code}, expected 404")
-check("public set list is empty",
-      c.get("/public/standards-sets").json()["total"] == 0,
-      "no run is approved yet, so nothing may be published")
+
+r = c.post("/api/runs/1/approve", params={"actor": "test@example.invalid"})
+check("a run can be approved though the boundaries were never reviewed",
+      r.status_code == 200, f"got {r.status_code}: {r.text[:120]}")
+check("approval alone opens the gate",
+      c.get("/public/standards-sets").json()["total"] == 1,
+      "an approved run is now the whole condition")
+r = c.get("/public/coverage", params={"set_id": 1, "course_id": 1})
+check("and public coverage is served", r.status_code == 200,
+      f"got {r.status_code}: {r.text[:120]}")
 
 print("\nThe identity trio")
 r = c.post("/api/standards-sets", json={"filename": "x.pdf", "framework": "DEMO",
