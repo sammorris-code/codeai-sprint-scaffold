@@ -571,6 +571,44 @@ invisible otherwise, and a rejection resting on a drafted boundary may be the
 boundary's fault rather than the curriculum's — which is why an unreviewed
 boundary says so inside the prompt.
 
+### Tier 1: screening with a cheap model
+
+```bash
+python3 service/align.py --set 3 --course 5 --scope "..." --tier1
+```
+
+A cheap model reads each lesson first and narrows 55 standards to about 12.
+Opus then judges only those.
+
+**Measured on ten lessons: 21% of the work, 83% of the claims a full run makes,
+$1.20 for a full course pair.** So it loses roughly one claim in six.
+
+That makes it right for iteration and wrong for a run a district will read. Use
+it while changing prompts or boundaries; turn it off for the run that matters.
+
+A free lexical screen was tried first and does not work — `screen.py` carries
+the measurement. Alignment is semantic, and a keyword match cannot see that a
+standard about accessibility belongs on a lesson about user testing.
+
+### Loading a hand mapping as real data
+
+```bash
+python3 service/load_mapping.py --csv mapping.csv --set 3 --actor "your name"
+```
+
+Turns a correlation list into a run, so an interface has something with a real
+shape to build against.
+
+**A correlation list is not an alignment.** It records that a standard belongs
+on a lesson and nothing else — no level, no evidence, no reasoning. So the
+import fills those columns with placeholders and marks every record
+`imported_unverified`, with `evidence` that says in words that none was
+recorded. The level is the lowest the column allows, because it understates
+rather than overstates while nobody knows.
+
+Nothing imported can reach a district: the records are unreviewed and the set's
+boundaries are drafted, so the publish gate refuses them twice over.
+
 ### Comparing against a hand mapping
 
 ```bash

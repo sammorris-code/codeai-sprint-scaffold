@@ -104,9 +104,11 @@ def load(conn, manifest, lessons, make_current, log=print):
 
     shared = 0
     for course in manifest["courses"]:
-        cur.execute("""INSERT INTO course (snapshot_id, course_key, course_name)
-                       VALUES (%s, %s, %s) RETURNING id""",
-                    (snapshot_id, course["course_key"], course["course_name"]))
+        cur.execute("""INSERT INTO course
+                         (snapshot_id, course_key, course_name, semester)
+                       VALUES (%s, %s, %s, %s) RETURNING id""",
+                    (snapshot_id, course["course_key"], course["course_name"],
+                     course.get("semester")))
         course_id = cur.fetchone()["id"]
         for unit in course["units"]:
             unit_id = unit_ids.get(unit["script_name"])
