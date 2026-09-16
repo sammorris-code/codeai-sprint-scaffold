@@ -117,8 +117,11 @@ Fixture: `boundary-queue.json`.
 
 `verdict` is `accept` or `edit`; an `edit` carrying no edits is a `422`. When
 every standard in the set has a verdict, **the set flips to `drafted+reviewed`
-and `all_boundaries_checked` becomes true.** Only this endpoint can cause that flip, and
-that flip is what lets results reach a district.
+and `all_boundaries_checked` becomes true.** Only this endpoint can cause that
+flip.
+
+That flip used to be what let results reach a district. It is not any more —
+publishing needs an approved run and nothing else. See `REVIEW-DESIGN.md`.
 
 Every verdict is written to `review_event` with the actor.
 

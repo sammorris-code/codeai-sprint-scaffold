@@ -126,11 +126,14 @@ curl -X POST http://localhost:8000/api/standards-sets \
   -F framework_year=2026 -F title="Demo Computer Science Standards"
 ```
 
-**3. Check the boundaries.** `GET /api/standards-sets/{id}/boundary-queue`, then
-a verdict on each. When the last one has a verdict, `all_boundaries_checked`
-turns true. Nothing waits on it - publishing needs an approved run and nothing
-else. See `contract/REVIEW-DESIGN.md`.
-Nothing else can cause that.
+**3. Check the boundaries — optional, and usually later.**
+`GET /api/standards-sets/{id}/boundary-queue` returns every standard whose
+boundary nobody has checked; a verdict on each records a decision, and when the
+last one has a verdict `all_boundaries_checked` turns true.
+
+Nothing waits on that. Publishing needs an approved run and nothing else, and a
+boundary is normally checked when an alignment turns on it — with the lesson in
+front of you — rather than in bulk up front. See `contract/REVIEW-DESIGN.md`.
 
 ### What is deterministic, and what is not
 
