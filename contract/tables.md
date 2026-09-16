@@ -369,3 +369,8 @@ SELECT o.* FROM standard_outcome o
 
 Two conditions, both required. The run is approved, and the set's boundaries were
 checked by a person. Anything else is internal.
+
+> **This rule is being reversed.** The set-level boundary condition is going away:
+> a boundary read on its own cannot be judged, and most boundaries never decide
+> anything. Review moves to the alignment that makes a boundary matter. See
+> `REVIEW-DESIGN.md` before building against the query above.
