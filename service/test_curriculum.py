@@ -69,12 +69,27 @@ COURSE = {
 CAPSTONE_COURSE_UNIT = "demo-capstone-2026"
 
 
+# Two groups, because the second one is the trap. An "Alternate" group holds a
+# second version of lessons the Content group already has, and a student does
+# one or the other. Dropping the group makes the duplicate look like extra
+# coverage.
+LESSON_GROUPS = [
+    {"key": "lg-content", "user_facing": True, "position": 1,
+     "properties": {"display_name": "Content"},
+     "seeding_key": {"lesson_group.key": "lg-content"}},
+    {"key": "lg-alt", "user_facing": True, "position": 2,
+     "properties": {"display_name": "Alternate Level Progressions (Console Only)"},
+     "seeding_key": {"lesson_group.key": "lg-alt"}},
+]
+
+
 def script_json(script_name, lessons, activities, sections, script_levels,
                 objectives, standards_rows):
     return {
         "script": {"name": script_name, "serialized_at": "2026-09-01 00:00:00 UTC",
                    "published_state": "stable",
                    "properties": {"title": "Demo Unit"}},
+        "lesson_groups": LESSON_GROUPS,
         "lessons": lessons,
         "lesson_activities": activities,
         "activity_sections": sections,
@@ -171,8 +186,17 @@ def build_fixture(root):
         # a lesson with a plan but no authored objective
         {"key": "Lesson 2: Project", "name": "Lesson 2: Project",
          "relative_position": 2, "absolute_position": 3,
-         "has_lesson_plan": True, "properties": {"overview": "Project."}},
+         "has_lesson_plan": True, "properties": {"overview": "Project."},
+         "seeding_key": {"lesson_group.key": "lg-content"}},
+        # The same content again, in the alternate group. No plan of its own,
+        # because the teacher uses the Content lesson's plan.
+        {"key": "Alt: Project", "name": "Project",
+         "relative_position": 1, "absolute_position": 4,
+         "has_lesson_plan": False, "properties": {},
+         "seeding_key": {"lesson_group.key": "lg-alt"}},
     ]
+    lessons[1]["seeding_key"] = {"lesson_group.key": "lg-content"}
+    lessons[0]["seeding_key"] = {"lesson_group.key": "lg-content"}
     activities = [
         {"key": "act-1", "position": 1,
          "seeding_key": {"lesson.key": "Lesson 1: Old Title"}},
@@ -389,6 +413,29 @@ def main():
                   for w in result["warnings"]))
         check("a lesson with an objective is not flagged",
               lesson["has_objectives"] is True)
+
+        print("\nLesson groups")
+        check("a Content lesson carries its group",
+              lesson["lesson_group_name"] == "Content",
+              f"{lesson.get('lesson_group_name')!r}")
+        alt = lessons[f"{UNIT}::Alt: Project"]
+        check("an alternate lesson is marked as one",
+              alt["lesson_group_name"] == "Alternate Level Progressions (Console Only)",
+              f"{alt.get('lesson_group_name')!r}")
+        check("the group key is kept for joining",
+              alt["lesson_group_key"] == "lg-alt", f"{alt.get('lesson_group_key')!r}")
+        check("groups keep their order",
+              alt["lesson_group_position"] == 2,
+              f"{alt.get('lesson_group_position')!r}")
+        check("the group reaches the manifest",
+              any(r["lesson_group_name"] == "Alternate Level Progressions (Console Only)"
+                  for r in manifest["lessons"]))
+        # The group must not move the hash, or adding the column restamps
+        # every lesson in the store and marks untouched claims stale.
+        check("the group is not part of content_hash",
+              "lesson_group" not in json.dumps(
+                  {k: v for k, v in alt.items()
+                   if k in ("plan", "levels")}))
 
         print("\nStandards citations, two different column layouts")
         cited = {s["shortcode"]: s for s in lesson["plan"]["standards"]}

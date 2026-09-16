@@ -113,7 +113,16 @@ def main():
         check("one course", counts["courses"] == 1, f"{counts}")
         check("two units", counts["units"] == 2, f"{counts}")
         check("two course-unit links", counts["links"] == 2, f"{counts}")
-        check("four lessons", counts["lessons"] == 4, f"{counts}")
+        check("five lessons", counts["lessons"] == 5, f"{counts}")
+
+        groups = {r["lesson_group_name"]: r["n"] for r in cur.execute("""
+            SELECT lesson_group_name, count(*) AS n FROM lesson
+             GROUP BY 1""").fetchall()}
+        check("lesson groups survive the load",
+              groups.get("Alternate Level Progressions (Console Only)") == 1,
+              f"{groups}")
+        check("and the Content group does too",
+              groups.get("Content", 0) >= 3, f"{groups}")
 
         numbering = cur.execute("""
             SELECT u.script_name, cu.position, cu.displayed_number
@@ -193,7 +202,7 @@ def main():
         ).fetchone()["n"] == 1)
         check("the old snapshot's lessons are still there", cur.execute(
             "SELECT count(*) AS n FROM lesson WHERE snapshot_id=%s", (snap1,)
-        ).fetchone()["n"] == 4)
+        ).fetchone()["n"] == 5)
 
         check("exactly one claim went stale", stale2 == 1, f"stale2={stale2}")
         changed = cur.execute("""

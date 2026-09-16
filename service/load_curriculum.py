@@ -128,11 +128,14 @@ def load(conn, manifest, lessons, make_current, log=print):
     for lesson in lessons:
         cur.execute("""INSERT INTO lesson
             (snapshot_id, unit_id, stable_id, lesson_key, lesson_name,
-             lesson_token, relative_position, absolute_position,
+             lesson_token, lesson_group_key, lesson_group_name,
+             lesson_group_position, relative_position, absolute_position,
              has_lesson_plan, has_objectives, content_hash, plan, levels)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (snapshot_id, unit_ids[lesson["script_name"]], lesson["stable_id"],
              lesson["lesson_key"], lesson["lesson_name"], lesson["lesson_token"],
+             lesson.get("lesson_group_key"), lesson.get("lesson_group_name"),
+             lesson.get("lesson_group_position"),
              lesson["relative_position"], lesson["absolute_position"],
              lesson["has_lesson_plan"], lesson["has_objectives"],
              lesson["content_hash"],

@@ -140,6 +140,24 @@ def extract_unit(repo, script_name, level_index, catalog):
     props = unit.get("properties") or {}
     unit_name = props.get("title") or props.get("display_name") or script_name
 
+    # Lesson groups are the structure inside a unit: Pre-Assessment, Content,
+    # End of Unit Project, and — this is the one that matters — "Alternate
+    # Level Progressions". An alternate group holds a second version of
+    # lessons the Content group already has. A student does one progression or
+    # the other, so crediting both double-counts, in exactly the concept areas
+    # a CS framework weights most heavily. The group is the only thing in the
+    # unit file that says so, and dropping it makes the duplicates look like
+    # extra coverage.
+    groups = {}
+    for group in doc.get("lesson_groups") or []:
+        gp = group.get("properties") or {}
+        groups[group.get("key")] = {
+            "key": group.get("key"),
+            "name": gp.get("display_name"),
+            "position": group.get("position"),
+            "user_facing": bool(group.get("user_facing")),
+        }
+
     activities_by_lesson = _group(doc.get("lesson_activities"), "lesson.key")
     sections_by_activity = _group(doc.get("activity_sections"), "lesson_activity.key")
     sls_by_section = _group(doc.get("script_levels"), "activity_section.key")
@@ -303,7 +321,10 @@ def extract_unit(repo, script_name, level_index, catalog):
         }
 
         # The hash covers content only. Not paths, not timestamps, not the
-        # commit — those change without the curriculum changing.
+        # commit — those change without the curriculum changing. The lesson
+        # group is deliberately outside it too: it is structure rather than
+        # content, and folding it in would restamp every lesson in the corpus
+        # the day it was added, marking claims stale that nothing had touched.
         digest = content_hash({
             "plan": plan,
             "levels": [{k: v for k, v in r.items() if k != "context"}
@@ -318,10 +339,17 @@ def extract_unit(repo, script_name, level_index, catalog):
                 "lesson_name": name,
             })
 
+        group = groups.get((row.get("seeding_key") or {}).get("lesson_group.key"),
+                           {"key": None, "name": None, "position": None,
+                            "user_facing": True})
+
         lessons.append({
             "stable_id": f"{script_name}::{key}",
             "script_name": script_name,
             "unit_name": unit_name,
+            "lesson_group_key": group["key"],
+            "lesson_group_name": group["name"],
+            "lesson_group_position": group["position"],
             "lesson_key": key,
             "lesson_name": name,
             "lesson_token": lesson_token(name, row.get("relative_position") or 0),
