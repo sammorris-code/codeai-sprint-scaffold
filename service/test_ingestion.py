@@ -38,9 +38,20 @@ def check(name, condition, detail=""):
         print(f"  FAIL  {name}  {detail}")
 
 
-def fake_draft(standards, progress=None):
+def fake_draft(standards, progress=None, include_specialty=False, usage=None):
     """Stands in for Claude. Returns a boundary shaped like a real one for
-    every standard that is not a heading."""
+    every standard that is not a heading.
+
+    The signature has to track the real one. It did not once - the real
+    function grew a `usage` argument and this did not - and every ingest test
+    failed with an unexpected-keyword error that looked like a service bug.
+    """
+    if usage is not None:
+        drafting = [s for s in standards if s.hierarchy_role != "umbrella"]
+        usage.update({"calls": 1, "input_tokens": 400 * len(drafting),
+                      "output_tokens": 650 * len(drafting),
+                      "cache_creation_input_tokens": 10500,
+                      "cache_read_input_tokens": 0})
     return {
         s.identifier: DraftedBoundary(
             identifier=s.identifier,
@@ -97,6 +108,11 @@ with TestClient(main.app) as c:
     check("the set is not publishable yet", r.json()["publishable"] is False)
     check("its boundaries are marked drafted",
           r.json()["boundary_provenance"] == "drafted")
+    check("the response reports what the run actually cost",
+          r.json()["cost"] and r.json()["cost"]["usd"] > 0,
+          f"got {r.json().get('cost')}")
+    check("and says it is measured rather than estimated",
+          "Measured" in r.json()["cost"]["note"])
     check("characterize wrote nothing; ingest wrote one set",
           main.one("SELECT count(*) AS n FROM standards_set")["n"] == before + 1)
 
@@ -212,6 +228,69 @@ with TestClient(main.app) as c:
         check("seven inclusions is still refused as runaway", False)
     except ValidationError:
         check("seven inclusions is still refused as runaway", True)
+
+    print("\nWhat a run costs is measured, not estimated")
+    import types as _t
+    from service.app.ingestion import boundaries as _B
+
+    class _Std:
+        hierarchy_role = "standard"; grade_band = "9-12"; clarification = None
+        def __init__(self, i):
+            self.identifier = f"C-{i}"; self.statement = f"Statement {i}."
+            self.concept = "X"
+
+    class _Usage:
+        def __init__(self, **kw): [setattr(self, k, v) for k, v in kw.items()]
+
+    class _Fake:
+        seen = []
+        class messages:
+            @staticmethod
+            def parse(**kw):
+                ids = [l.split(": ")[1] for l in kw["messages"][0]["content"].splitlines()
+                       if l.startswith("Identifier: ")]
+                first = not _Fake.seen
+                _Fake.seen.append(1)
+                return _t.SimpleNamespace(
+                    parsed_output=_B.DraftedBatch(boundaries=[
+                        _B.DraftedBoundary(identifier=i, boundary_includes=["a"],
+                                           boundary_excludes=["x", "y"],
+                                           keywords=["k"]) for i in ids]),
+                    usage=_Usage(input_tokens=400 * len(ids),
+                                 output_tokens=650 * len(ids),
+                                 cache_creation_input_tokens=10500 if first else 0,
+                                 cache_read_input_tokens=0 if first else 10500))
+
+    _real = _B._client
+    _B._client = lambda: _Fake()
+    try:
+        spend = {}
+        real_draft_boundaries([_Std(i) for i in range(1, 21)], usage=spend)
+    finally:
+        _B._client = _real
+
+    check("usage is accumulated across every call", spend["calls"] == 2,
+          f"got {spend['calls']}")
+    check("output tokens are totalled", spend["output_tokens"] == 650 * 20,
+          f"got {spend['output_tokens']}")
+    check("the cache write is counted once",
+          spend["cache_creation_input_tokens"] == 10500,
+          f"got {spend['cache_creation_input_tokens']}")
+    check("cache reads are counted separately",
+          spend["cache_read_input_tokens"] == 10500,
+          f"got {spend['cache_read_input_tokens']}")
+
+    cost = _B.actual_cost(spend)
+    check("a dollar figure comes back", cost["usd"] > 0, str(cost["usd"]))
+    check("it says it is measured rather than estimated",
+          "Measured" in cost["note"])
+    # Cache reads must be charged at the cache rate, not the input rate, or the
+    # figure is wrong in the same direction the old estimate was.
+    naive = (spend["input_tokens"] + spend["cache_read_input_tokens"]
+             + spend["cache_creation_input_tokens"]) / 1e6 * 5.0 \
+            + spend["output_tokens"] / 1e6 * 25.0
+    check("cache reads are not charged at the full input rate",
+          cost["usd"] < naive, f"{cost['usd']} should be under {naive:.4f}")
 
     print("\nOne bad standard does not lose its batch")
     import types, pydantic as _pyd

@@ -208,7 +208,23 @@ def _system_blocks(reference_text):
     return blocks
 
 
-def draft_boundaries(standards, progress=None, include_specialty=False):
+def actual_cost(usage):
+    """What a run really cost, from what the API reported.
+
+    Thinking tokens are billed as output and are counted in output_tokens, so
+    this includes them without having to guess - which is exactly why an
+    estimate is not a substitute for measuring.
+    """
+    usd = (usage["input_tokens"] / 1e6 * PRICE_PER_MTOK["input"]
+           + usage["cache_creation_input_tokens"] / 1e6 * PRICE_PER_MTOK["cache_write"]
+           + usage["cache_read_input_tokens"] / 1e6 * PRICE_PER_MTOK["cache_read"]
+           + usage["output_tokens"] / 1e6 * PRICE_PER_MTOK["output"])
+    return {**usage, "usd": round(usd, 4), "model": MODEL,
+            "note": "Measured, not estimated. output_tokens includes thinking, "
+                    "which is billed as output."}
+
+
+def draft_boundaries(standards, progress=None, include_specialty=False, usage=None):
     """Draft a boundary for each standard. Returns {identifier: DraftedBoundary}.
 
     Umbrella headings are skipped. They are rated by rollup from the standards
@@ -227,6 +243,19 @@ def draft_boundaries(standards, progress=None, include_specialty=False):
     known_ids = csta.valid_ids(reference)
     system = _system_blocks(reference_text)
     invented = set()
+
+    # What the run actually costs, accumulated from every call including the
+    # extra ones a split causes. Reported rather than estimated: the estimate
+    # was wrong by more than a factor of two, and one that under-quotes is the
+    # dangerous kind.
+    totals = {"calls": 0, "input_tokens": 0, "output_tokens": 0,
+              "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}
+
+    def record(u):
+        totals["calls"] += 1
+        for field in ("input_tokens", "output_tokens",
+                      "cache_creation_input_tokens", "cache_read_input_tokens"):
+            totals[field] += getattr(u, field, 0) or 0
 
     def ask(batch):
         """One call. On a validation error the batch is split and re-asked,
@@ -257,6 +286,7 @@ def draft_boundaries(standards, progress=None, include_specialty=False):
             collect(batch[:half], into)
             collect(batch[half:], into)
             return
+        record(response.usage)
         into.append(response)
 
     for start in range(0, len(drafting), BATCH_SIZE):
@@ -276,6 +306,9 @@ def draft_boundaries(standards, progress=None, include_specialty=False):
         if progress:
             progress(min(start + BATCH_SIZE, len(drafting)), len(drafting),
                      response.usage)
+
+    if usage is not None:
+        usage.update(totals)
 
     if invented:
         print(f"Dropped {len(invented)} CSTA identifier(s) that are not in the "
@@ -306,7 +339,15 @@ CHARS_PER_TOKEN = 3.7
 # multipliers; confirm against current pricing before quoting these to anybody.
 PRICE_PER_MTOK = {"input": 5.00, "output": 25.00,
                   "cache_write": 6.25, "cache_read": 0.50}
-OUTPUT_TOKENS_PER_STANDARD = 260
+# Calibrated against real runs, not guessed. The first figure was 260, which
+# under-quoted by more than half: it counted the visible boundary text and
+# nothing else, while Opus 5 runs adaptive thinking by default and thinking is
+# billed as output.
+#
+# This is a rough floor for approving a spend, not a quote. Every ingest now
+# reports what it actually cost - see actual_cost() - and that is the number to
+# trust.
+OUTPUT_TOKENS_PER_STANDARD = 650
 
 
 def estimate_cost(standards):
@@ -345,6 +386,9 @@ def estimate_cost(standards):
         "estimated_input_tokens": round(cached + fresh),
         "estimated_output_tokens": round(output_tokens),
         "estimated_usd": round(usd, 2),
-        "note": "An estimate from character counts, not a quote. The Batch API "
-                "halves it. Measure exactly with count_tokens once a key is set.",
+        "note": "A rough floor, not a quote. It assumes ~650 output tokens per "
+                "standard including the thinking Opus 5 does by default and "
+                "bills as output. Real runs have come in above earlier "
+                "estimates, so treat this as the low end. Every ingest reports "
+                "what it actually cost.",
     }

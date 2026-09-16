@@ -25,7 +25,8 @@ from pydantic import BaseModel, Field
 from .db import pool, rows, one, execute
 from .ingestion.characterize import characterize_csv
 from .ingestion.boundaries import (draft_boundaries, estimate_cost,
-                                   provenance_for, NoCredentials,
+                                   provenance_for, actual_cost,
+                                   NoCredentials,
                                    BoundaryRefused)
 
 
@@ -185,8 +186,9 @@ async def ingest(file: UploadFile = File(...),
              f"{identity.framework_year} is already in the store as set "
              f"{existing['id']}.", "standard_set")
 
+    spend = {}
     try:
-        drafted = draft_boundaries(c.standards)
+        drafted = draft_boundaries(c.standards, usage=spend)
     except NoCredentials as e:
         fail(503, "boundary_drafting_unavailable", str(e))
     except BoundaryRefused as e:
@@ -272,6 +274,7 @@ async def ingest(file: UploadFile = File(...),
                         "a high percentage here is a sign of stretching, not of "
                         "good coverage.",
             },
+            "cost": actual_cost(spend) if spend else None,
             "warnings": c.warnings,
             "next": f"A person must now check the boundaries. "
                     f"GET /api/standards-sets/{set_id}/boundary-queue"}
