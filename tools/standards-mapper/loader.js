@@ -52,14 +52,16 @@ window.StandardsSource = (function () {
         'courses': '/courses.json',
         'review-queue': '/review-queue.json',
         'run': '/run.json',
-        'coverage': '/coverage.json'
+        'coverage': '/coverage.json',
+        'run-diff': '/run-diff.json'
       },
       api: {
         'standards-sets': '/standards-sets',
         'courses': '/courses',
         'review-queue': '/runs/1/queue',
         'run': '/runs/1',
-        'coverage': '/runs/1/coverage'
+        'coverage': '/runs/1/coverage',
+        'run-diff': '/runs/1/diff'
       }
     }
   };
@@ -115,12 +117,41 @@ window.StandardsSource = (function () {
   }
 
   /* Plain words for the state of a set's boundary notes. The rule lives here
-   * once. No screen re-derives it from boundary_provenance. */
+   * once. No screen re-derives it from boundary_provenance.
+   *
+   * This describes the notes and nothing else. It used to be read as though it
+   * decided whether results could reach a district; it never decides anything
+   * now. See contract/REVIEW-DESIGN.md, and runStatus() below for the rule that
+   * actually gates a release. */
   function setStatus(set) {
     if (set.all_boundaries_checked) {
-      return { text: 'Checked by a person', all_boundaries_checked: true };
+      return { text: 'Notes checked by a person', all_boundaries_checked: true };
     }
-    return { text: 'Notes not checked yet', all_boundaries_checked: false };
+    return { text: 'Notes are drafts', all_boundaries_checked: false };
+  }
+
+  /* The real release gate, in one place: a run is published when a person has
+   * approved it. Nothing about the set's boundary notes appears here, because
+   * nothing about them holds a release any more.
+   *
+   * The service agrees - service/app/main.py, approve() - and this is the only
+   * place the interface states the rule. */
+  function runStatus(run) {
+    if (!run) {
+      return { published: false, text: 'No run loaded.' };
+    }
+    if (run.status === 'approved') {
+      return {
+        published: true,
+        text: 'Approved' + (run.approved_by ? ' by ' + run.approved_by : '') +
+              '. These results are on the public site.'
+      };
+    }
+    return {
+      published: false,
+      text: 'Not approved yet, so nothing here is on the public site. ' +
+            'A person approves the run when they are done reviewing it.'
+    };
   }
 
   return {
@@ -129,6 +160,7 @@ window.StandardsSource = (function () {
     urlFor: urlFor,
     setLabel: setLabel,
     setStatus: setStatus,
+    runStatus: runStatus,
     mode: SOURCE.mode
   };
 })();
