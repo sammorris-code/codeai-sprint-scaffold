@@ -26,6 +26,7 @@ on:
       - 'contract/**'
       - 'index.html'
       - 'css/**'
+      - 'assets/**'
       - 'tools/**'
       - '.github/workflows/publish-image.yml'
   workflow_dispatch:

@@ -277,7 +277,7 @@ window.ReviewQueue = (function () {
     });
     buttons.appendChild(confirmBtn);
 
-    var cancelBtn = el('button', null, 'Cancel');
+    var cancelBtn = el('button', 'quiet', 'Cancel');
     cancelBtn.type = 'button';
     cancelBtn.addEventListener('click', function () {
       delete rejecting[record.id];
@@ -409,7 +409,7 @@ window.ReviewQueue = (function () {
     });
     actions.appendChild(acceptBtn);
 
-    var rejectBtn = el('button', null, 'Reject');
+    var rejectBtn = el('button', 'quiet', 'Reject');
     rejectBtn.id = 'reject-' + record.id;
     rejectBtn.type = 'button';
     rejectBtn.setAttribute('aria-label',

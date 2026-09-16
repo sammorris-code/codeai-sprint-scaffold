@@ -5,10 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Standards Mapper — Sprint Scaffold</title>
   <link rel="stylesheet" href="../../css/layout.css">
+  <link rel="stylesheet" href="../../css/theme.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="page">
+
+  <!-- The brand bar. The logo is the supplied file and is never typed out as
+       letters or stood in for by a shape. White knockout because the bar is
+       purple; the black solid version is the one for a white background.
+       alt is empty because the text beside it already names the tool - a
+       screen reader announcing "CodeAI" here would only repeat it. -->
+  <div class="brand-bar">
+    <img class="brand-bar__logo"
+         src="../../assets/logo/CodeAI_Primary-Logo_RGB_02_White_Knockout.png"
+         alt="">
+    <span class="brand-bar__context">Alignment workbench</span>
+    <span class="brand-bar__tag">Internal — staff only</span>
+  </div>
 
   <header class="site-header">
     <nav class="breadcrumb" aria-label="Breadcrumb">
@@ -18,7 +32,6 @@
       </ol>
     </nav>
     <h1>Standards Mapper</h1>
-    <p>Internal tool. Staff only.</p>
     <dl class="meta">
       <dt>Reference</dt><dd>Candidate #3a</dd>
       <dt>Owner</dt><dd>Sam Morris (taken over from Danielle Reyes)</dd>

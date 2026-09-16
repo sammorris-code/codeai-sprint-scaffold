@@ -22,8 +22,8 @@ window.QueueActions = (function () {
     return node;
   }
 
-  function button(text, onClick) {
-    var b = el('button', null, text);
+  function button(text, onClick, className) {
+    var b = el('button', className || null, text);
     b.type = 'button';
     b.addEventListener('click', onClick);
     return b;
@@ -102,6 +102,13 @@ window.QueueActions = (function () {
       });
   }
 
+  /* The contract types previous_run_id as integer-or-null, so "no previous
+   * run" is null and nothing else. Testing it for truthiness would read a
+   * real run 0 as absent and quietly disable the comparison against it. */
+  function hasPreviousRun(run) {
+    return run.previous_run_id !== null && run.previous_run_id !== undefined;
+  }
+
   // ---- The row ----------------------------------------------------------
 
   function render(ctx) {
@@ -110,18 +117,18 @@ window.QueueActions = (function () {
 
     var row = el('div', 'actions');
     row.appendChild(button('Download decisions', guardEmpty(D.save)));
-    row.appendChild(button('Save as CSV', guardEmpty(D.saveCsv)));
+    row.appendChild(button('Save as CSV', guardEmpty(D.saveCsv), 'quiet'));
 
     /* The first run against a set has nothing behind it. A button that looks
      * available and then reports "nothing to compare" wastes the click; one
      * that is off with the reason beside it does not. */
-    var compareBtn = button('Compare to last run', compare);
-    compareBtn.disabled = !ctx.run.previous_run_id;
+    var compareBtn = button('Compare to last run', compare, 'quiet');
+    compareBtn.disabled = !hasPreviousRun(ctx.run);
     row.appendChild(compareBtn);
 
     mount.appendChild(row);
 
-    if (!ctx.run.previous_run_id) {
+    if (!hasPreviousRun(ctx.run)) {
       mount.appendChild(el('p', 'wb-note',
         'This is the first run against this set, so there is nothing to ' +
         'compare it with yet.'));

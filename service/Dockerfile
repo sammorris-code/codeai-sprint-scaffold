@@ -15,6 +15,7 @@ COPY contract/ ./contract/
 # arrive here by accident.
 COPY index.html ./site/
 COPY css/ ./site/css/
+COPY assets/ ./site/assets/
 COPY tools/ ./site/tools/
 COPY contract/ ./site/contract/
 
