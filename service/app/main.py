@@ -25,7 +25,8 @@ from pydantic import BaseModel, Field
 from .db import pool, rows, one, execute
 from .ingestion.characterize import characterize_csv
 from .ingestion.boundaries import (draft_boundaries, estimate_cost,
-                                   provenance_for, NoCredentials)
+                                   provenance_for, NoCredentials,
+                                   BoundaryRefused)
 
 
 @asynccontextmanager
@@ -188,6 +189,8 @@ async def ingest(file: UploadFile = File(...),
         drafted = draft_boundaries(c.standards)
     except NoCredentials as e:
         fail(503, "boundary_drafting_unavailable", str(e))
+    except BoundaryRefused as e:
+        fail(502, "boundary_refused", str(e), e.identifier)
     except Exception as e:
         fail(502, "boundary_drafting_failed",
              f"The boundaries could not be drafted, so nothing was written. "

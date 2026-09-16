@@ -16,6 +16,7 @@ is enforced by the service, not by this file.
 import os
 
 import anthropic
+import pydantic
 from pydantic import BaseModel, Field
 
 from . import csta
@@ -102,13 +103,23 @@ That is what the reference is for."""
 
 class DraftedBoundary(BaseModel):
     identifier: str = Field(description="The standard's identifier, copied exactly.")
+    # The bounds here are a sanity check for runaway output, NOT the style
+    # rule. The style rule - no line repeating another, usually two or three
+    # inclusions - lives in the prompt, where it belongs.
+    #
+    # An earlier version capped inclusions at three and a standard came back
+    # with four. Four is not wrong: some statements genuinely have four facets.
+    # But the cap was hard, so Pydantic rejected the batch, the batch took nine
+    # other standards down with it, and the whole run failed after several
+    # batches had already been paid for. A schema cannot judge redundancy, so
+    # counting was a proxy for a thing it does not measure.
     boundary_includes: list[str] = Field(
-        min_length=1, max_length=3,
+        min_length=1, max_length=6,
         description="What counts as teaching this. Concrete and observable. "
-                    "Usually three: the action, the scope, the evidence. No "
-                    "line repeating another.")
+                    "Usually two or three: the action, the scope, the "
+                    "evidence. No line repeating another.")
     boundary_excludes: list[str] = Field(
-        min_length=2, max_length=6,
+        min_length=2, max_length=8,
         description="What does not count. The primary defence against a false "
                     "positive. Each must name a DIFFERENT way a lesson could "
                     "look like a match without being one. Never empty.")
@@ -126,6 +137,25 @@ class DraftedBoundary(BaseModel):
 
 class DraftedBatch(BaseModel):
     boundaries: list[DraftedBoundary]
+
+
+class BoundaryRefused(RuntimeError):
+    """One standard's boundary would not fit the schema, even on its own.
+
+    The batch is split down to single standards before this is raised, so the
+    identifier here is the actual culprit rather than "one of these ten".
+    """
+
+    def __init__(self, identifier, statement, cause):
+        self.identifier = identifier
+        super().__init__(
+            f"The boundary drafted for {identifier} does not fit the schema, "
+            f"and it still did not when drafted on its own. Nothing was "
+            f"written.\n\n"
+            f"  {identifier}: {statement[:150]}\n\n"
+            f"Every other standard drafted fine. If this statement is unusual "
+            f"- very long, several requirements in one sentence, or malformed "
+            f"in the source - that is the place to look.\n\n{cause}")
 
 
 class NoCredentials(RuntimeError):
@@ -198,16 +228,43 @@ def draft_boundaries(standards, progress=None, include_specialty=False):
     system = _system_blocks(reference_text)
     invented = set()
 
+    def ask(batch):
+        """One call. On a validation error the batch is split and re-asked,
+        halving down to single standards.
+
+        Output that does not fit the schema is usually one standard's doing.
+        Losing ten of them - and every batch already paid for - because of one
+        is not a trade worth making. Splitting isolates the culprit and the
+        rest still get drafted.
+        """
+        try:
+            return client.messages.parse(
+                model=MODEL, max_tokens=16000, system=system,
+                messages=[{"role": "user", "content": _prompt_for(batch)}],
+                output_format=DraftedBatch,
+            )
+        except pydantic.ValidationError as e:
+            if len(batch) == 1:
+                # Down to one standard and still failing, so we know exactly
+                # which. Say so: "one of these ten" sends somebody hunting.
+                raise BoundaryRefused(batch[0].identifier, batch[0].statement, e)
+            return None      # tell the caller to split
+
+    def collect(batch, into):
+        response = ask(batch)
+        if response is None:
+            half = max(len(batch) // 2, 1)
+            collect(batch[:half], into)
+            collect(batch[half:], into)
+            return
+        into.append(response)
+
     for start in range(0, len(drafting), BATCH_SIZE):
         batch = drafting[start:start + BATCH_SIZE]
-        response = client.messages.parse(
-            model=MODEL,
-            max_tokens=16000,
-            system=system,
-            messages=[{"role": "user", "content": _prompt_for(batch)}],
-            output_format=DraftedBatch,
-        )
-        for b in response.parsed_output.boundaries:
+        responses = []
+        collect(batch, responses)
+        response = responses[-1]
+        for b in [x for r in responses for x in r.parsed_output.boundaries]:
             # An identifier the model invented is worse than an empty list: it
             # looks like an audit trail and is not one. Drop it and say so.
             if known_ids:
