@@ -40,7 +40,7 @@ TYPES = {"string": str, "integer": int, "number": (int, float), "boolean": bool,
 
 def load_schema(name):
     if name not in _schema_cache:
-        _schema_cache[name] = json.loads((SCHEMA_DIR / name).read_text())
+        _schema_cache[name] = json.loads((SCHEMA_DIR / name).read_text(encoding="utf-8"))
     return _schema_cache[name]
 
 
@@ -140,7 +140,7 @@ def validate(value, schema, path, where):
 
 
 def fixture(name):
-    return json.loads((FIXTURE_DIR / name).read_text())
+    return json.loads((FIXTURE_DIR / name).read_text(encoding="utf-8"))
 
 
 print("Pass 1  shape")
@@ -331,7 +331,7 @@ def walk_values(node):
 for path in sorted(FIXTURE_DIR.glob("*.json")):
     if path.name in ALLOWED_FILES:
         continue
-    for value in walk_values(json.loads(path.read_text())):
+    for value in walk_values(json.loads(path.read_text(encoding="utf-8"))):
         low = value.lower()
         for word in BANNED:
             if word in low:

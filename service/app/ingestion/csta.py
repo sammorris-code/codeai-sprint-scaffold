@@ -30,7 +30,7 @@ def _load(filename):
         if not path.exists():
             _cache[filename] = []
         else:
-            _cache[filename] = json.loads(path.read_text()).get("standards", [])
+            _cache[filename] = json.loads(path.read_text(encoding="utf-8")).get("standards", [])
     return _cache[filename]
 
 
