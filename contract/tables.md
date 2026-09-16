@@ -177,6 +177,9 @@ CREATE TABLE lesson (
   lesson_key      text NOT NULL,           -- opaque. Goes stale on rename. Never display.
   lesson_name     text NOT NULL,           -- current title. Display this.
   lesson_token    text NOT NULL,           -- '4', 'capstone'. Bare. No 'L' prefix.
+  lesson_group_key      text,              -- the group inside the unit
+  lesson_group_name     text,              -- 'Content', 'Alternate Level Progressions'
+  lesson_group_position integer,
   relative_position  integer NOT NULL,
   absolute_position  integer NOT NULL,
   has_lesson_plan boolean NOT NULL DEFAULT true,
@@ -202,6 +205,21 @@ unit, so it cannot say which lesson changed.
 `has_objectives` is false for a project lesson with no authored objective. There
 is nothing to anchor a forward claim on. The interface must say so rather than
 infer one.
+
+**`lesson_group_*` is the structure inside a unit, and it is not decoration.**
+A unit divides into groups — Pre-Assessment, Content, End of Unit Project — and
+one observed unit adds *Alternate Level Progressions (Console Only)*, holding a
+second version of seven lessons the Content group already has. A student does
+one progression or the other.
+
+Without the group those seven look like extra coverage, and crediting both
+double-counts in exactly the concept areas a CS framework weights most heavily.
+It is the same problem as a choice level, one scale up: the corpus recorded the
+choice between levels and missed the choice between lessons.
+
+It is deliberately **not** part of `content_hash`. The group is structure, not
+content, and folding it in would restamp every lesson in the store the day the
+column was added — marking claims stale that nothing had touched.
 
 ---
 

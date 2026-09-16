@@ -200,8 +200,25 @@ async function showLesson(id) {
     `${lesson.unit_name} · ${lesson.script_name} · lesson ` +
     `${lesson.relative_position} of the unit, ${lesson.absolute_position} overall`));
 
+  // An alternate progression holds a second version of lessons the Content
+  // group already has. A student does one or the other, so crediting both
+  // double-counts. This is the loudest thing on the page for that reason.
+  const group = lesson.lesson_group_name || '';
+  if (/alternate/i.test(group)) {
+    const warn = block('This is an alternate progression');
+    warn.append(prose(
+      `This lesson sits in "${group}". It is a second version of a lesson the ` +
+      'unit already teaches elsewhere, and a student does one progression or ' +
+      'the other. Counting both as coverage double-counts. Treat it the way ' +
+      'you would treat a choice branch: pick one, and say which.'));
+    view.append(warn);
+  }
+
   const chips = make('div', 'chips');
   chips.append(chip(lesson.stable_id, 'id'));
+  if (group) {
+    chips.append(chip(group, /alternate/i.test(group) ? 'warn' : null));
+  }
   chips.append(chip('hash ' + String(lesson.content_hash).slice(0, 10), 'id'));
   if (plan.duration_minutes) chips.append(chip(plan.duration_minutes + ' min', 'info'));
   chips.append(chip(levels.length + ' levels', 'info'));

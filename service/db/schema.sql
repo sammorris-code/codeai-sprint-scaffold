@@ -100,6 +100,9 @@ CREATE TABLE lesson (
   lesson_key      text NOT NULL,           -- opaque. Goes stale on rename. Never display.
   lesson_name     text NOT NULL,           -- current title. Display this.
   lesson_token    text NOT NULL,           -- '4', 'capstone'. Bare. No 'L' prefix.
+  lesson_group_key      text,              -- the group inside the unit
+  lesson_group_name     text,              -- 'Content', 'Alternate Level Progressions'
+  lesson_group_position integer,
   relative_position  integer NOT NULL,
   absolute_position  integer NOT NULL,
   has_lesson_plan boolean NOT NULL DEFAULT true,

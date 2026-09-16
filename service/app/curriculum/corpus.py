@@ -210,7 +210,8 @@ def extract(repo, course_keys, cache_dir=None, log=print):
 # ---------------------------------------------------------------------------
 
 MANIFEST_COLUMNS = [
-    "stable_id", "script_name", "unit_name", "lesson_key", "lesson_name",
+    "stable_id", "script_name", "unit_name", "lesson_group_name", "lesson_key",
+    "lesson_name",
     "lesson_token", "relative_position", "absolute_position",
     "has_lesson_plan", "has_objectives", "objective_count", "standard_count",
     "level_count", "choice_level_count", "student_word_count",
@@ -223,6 +224,7 @@ def _lesson_row(lesson, courses_for_unit):
         "stable_id": lesson["stable_id"],
         "script_name": lesson["script_name"],
         "unit_name": lesson["unit_name"],
+        "lesson_group_name": lesson["lesson_group_name"],
         "lesson_key": lesson["lesson_key"],
         "lesson_name": lesson["lesson_name"],
         "lesson_token": lesson["lesson_token"],
@@ -245,6 +247,8 @@ def _lesson_row(lesson, courses_for_unit):
 def _lesson_markdown(lesson):
     out = [f"# {lesson['lesson_name']}", ""]
     out.append(f"- Unit: `{lesson['script_name']}` — {lesson['unit_name']}")
+    if lesson.get("lesson_group_name"):
+        out.append(f"- Group: {lesson['lesson_group_name']}")
     out.append(f"- Stable id: `{lesson['stable_id']}`")
     out.append(f"- Position: {lesson['relative_position']} in unit, "
                f"{lesson['absolute_position']} overall")

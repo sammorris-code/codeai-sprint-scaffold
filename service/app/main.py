@@ -413,6 +413,8 @@ def list_courses(snapshot_id: int | None = None):
 LESSON_JSON = """json_build_object(
     'stable_id', l.stable_id, 'lesson_key', l.lesson_key,
     'lesson_name', l.lesson_name, 'lesson_token', l.lesson_token,
+    'lesson_group_name', l.lesson_group_name,
+    'lesson_group_position', l.lesson_group_position,
     'script_name', u.script_name, 'unit_name', u.unit_name,
     'displayed_number', cu.displayed_number, 'position', cu.position,
     'relative_position', l.relative_position,
@@ -472,6 +474,7 @@ def get_lesson(lesson_id: int):
     """
     lesson = one("""
         SELECT l.id, l.stable_id, l.lesson_key, l.lesson_name, l.lesson_token,
+               l.lesson_group_key, l.lesson_group_name, l.lesson_group_position,
                l.relative_position, l.absolute_position, l.has_lesson_plan,
                l.has_objectives, l.content_hash, l.plan, l.levels,
                u.script_name, u.unit_name, s.source_commit, s.source_repo
