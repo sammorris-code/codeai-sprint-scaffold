@@ -27,6 +27,7 @@ import posixpath
 import re
 import time
 
+from .distil import distil, to_markdown
 from .lessons import StandardsCatalog, extract_unit
 from .levels import LevelIndex
 from .repo import SUBDIRS, Repo
@@ -356,6 +357,10 @@ def write(result, out_dir, log=print):
     out = long_path(out_dir)
     (out / "lessons").mkdir(parents=True, exist_ok=True)
     (out / "levels").mkdir(parents=True, exist_ok=True)
+    # The distilled layer is written every time rather than behind a flag.
+    # It is derived, so it goes stale the moment the corpus moves without it,
+    # and a flag is a thing somebody forgets.
+    (out / "distilled").mkdir(parents=True, exist_ok=True)
 
     courses_by_unit = {}
     for course in result["courses"]:
@@ -364,9 +369,11 @@ def write(result, out_dir, log=print):
                 course["course_key"])
 
     rows = []
+    distilled = []
     for script_name, unit in result["units"].items():
         (out / "lessons" / script_name).mkdir(parents=True, exist_ok=True)
         (out / "levels" / script_name).mkdir(parents=True, exist_ok=True)
+        (out / "distilled" / script_name).mkdir(parents=True, exist_ok=True)
         for lesson in unit["lessons"]:
             stem = f"{lesson['absolute_position']:02d}-{lesson['slug']}"
             # Names are built by concatenation, not with_suffix(). A stem like
@@ -386,6 +393,14 @@ def write(result, out_dir, log=print):
                            indent=2, ensure_ascii=False), encoding="utf-8")
             (level_dir / f"{stem}.levels.md").write_text(
                 _levels_markdown(lesson), encoding="utf-8")
+
+            record = distil(lesson)
+            distilled.append(record)
+            distil_dir = out / "distilled" / script_name
+            (distil_dir / f"{stem}.actions.json").write_text(
+                json.dumps(record, indent=2, ensure_ascii=False), encoding="utf-8")
+            (distil_dir / f"{stem}.actions.md").write_text(
+                to_markdown(record), encoding="utf-8")
 
             rows.append(_lesson_row(lesson, courses_by_unit.get(script_name, [])))
 
@@ -421,6 +436,7 @@ def write(result, out_dir, log=print):
             for s, u in result["units"].items()
         ],
         "totals": totals(result),
+        "distilled": distil_summary(distilled),
         "lessons": rows,
     }
     (out / "manifest.json").write_text(
@@ -431,6 +447,34 @@ def write(result, out_dir, log=print):
 
     log(f"  wrote {len(rows)} lessons to {out}")
     return manifest
+
+
+def distil_summary(records):
+    """How well the distilled layer reached the corpus.
+
+    Reported every run rather than assumed. If the share of lessons with no
+    student action ever climbs, the signal has stopped working and the layer
+    is quietly worth less than it looks.
+    """
+    taught = [r for r in records if r["has_lesson_plan"]]
+    with_action = [r for r in taught if r["every_student"] or r["one_option_only"]]
+    from_prose = [r for r in taught
+                  if r["signals"]["do_this"] or r["signals"]["directions"]]
+    return {
+        "lessons": len(records),
+        "taught_lessons": len(taught),
+        "with_a_student_action": len(with_action),
+        "reached_by_a_prose_marker_alone": len(from_prose),
+        "alternate_progressions": sum(
+            1 for r in records if r["is_alternate_progression"]),
+        "lessons_with_open_questions": sum(
+            1 for r in records if r["open_questions"]),
+        "code_levels_student_written": sum(
+            r["authorship"]["code_levels_student_written"] for r in records),
+        "code_levels_ai_written": sum(
+            r["authorship"]["code_levels_ai_written_at_student_direction"]
+            for r in records),
+    }
 
 
 def totals(result):
