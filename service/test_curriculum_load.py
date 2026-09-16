@@ -82,9 +82,16 @@ def main():
 
         cur = conn.cursor()
         # Start from a known state. This is a prototype's test database.
+        #
+        # The standards tables are cleared too, not just the curriculum ones.
+        # load_fixtures.py has usually run first and left a DEMO/CS-DEMO/2026
+        # set behind, and the identity trio is unique — so a test that makes
+        # its own standards set collides with it. Clearing them is what makes
+        # this test independent of whatever ran before it.
         cur.execute("""TRUNCATE review_event, standard_outcome,
                        alignment_record, run, lesson, course_unit, unit,
-                       course, snapshot RESTART IDENTITY CASCADE""")
+                       course, snapshot, standard, standards_set
+                       RESTART IDENTITY CASCADE""")
         conn.commit()
 
         print("\nLoading the first snapshot")
