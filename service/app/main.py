@@ -462,6 +462,28 @@ def list_lessons(course_id: int | None = None):
             "total": len(items)}
 
 
+@app.get("/api/lessons/{lesson_id}")
+def get_lesson(lesson_id: int):
+    """One lesson, whole: the teacher's plan and the student's screens.
+
+    The list above deliberately returns a summary, because a course is 190
+    lessons and the nested records are large. This returns everything for one
+    of them, which is what a person reading the corpus actually needs.
+    """
+    lesson = one("""
+        SELECT l.id, l.stable_id, l.lesson_key, l.lesson_name, l.lesson_token,
+               l.relative_position, l.absolute_position, l.has_lesson_plan,
+               l.has_objectives, l.content_hash, l.plan, l.levels,
+               u.script_name, u.unit_name, s.source_commit, s.source_repo
+          FROM lesson l
+          JOIN unit u ON u.id = l.unit_id
+          JOIN snapshot s ON s.id = l.snapshot_id
+         WHERE l.id = %(id)s""", {"id": lesson_id})
+    if not lesson:
+        fail(404, "not_found", f"No lesson with id {lesson_id}.", "lesson_id")
+    return lesson
+
+
 # ---------------------------------------------------------------------------
 # Runs and review
 # ---------------------------------------------------------------------------
