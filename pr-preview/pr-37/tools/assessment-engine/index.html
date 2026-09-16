@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Assessment and Recommendation Engine — Sprint Scaffold</title>
+  <link rel="stylesheet" href="../../css/layout.css">
+  <!-- When your team starts styling, create style.css in this folder and
+       uncomment the line below. Keep page-specific styling here rather than in
+       the shared layout.css, so two teams do not collide in one file. -->
+  <!-- <link rel="stylesheet" href="style.css"> -->
+</head>
+<body>
+<div class="page">
+
+  <header class="site-header">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="../../">Portal</a></li>
+        <li>Assessment and Recommendation Engine</li>
+      </ol>
+    </nav>
+    <h1>Assessment and Recommendation Engine</h1>
+    <dl class="meta">
+      <dt>Reference</dt><dd>Candidate #2</dd>
+      <dt>Owner</dt><dd>unassigned</dd>
+      <dt>Status</dt><dd>Scaffold only</dd>
+    </dl>
+  </header>
+
+  <main class="split">
+    <div>
+
+      <section class="section">
+        <h2>What it does</h2>
+        <p>
+          A district tells us where it is. The tool tells the district what to
+          teach next, using courses and professional learning that already
+          exist. It recommends. It does not create anything new — that is the
+          Resource Generator's job.
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>Tell us about your district</h2>
+        <form action="#results" method="get">
+
+          <div class="field-row">
+            <p class="field">
+              <label for="district">District name</label>
+              <input type="text" id="district" name="district" autocomplete="organization">
+            </p>
+            <p class="field">
+              <label for="state">State</label>
+              <select id="state" name="state">
+                <option value="">Select a state</option>
+                <option value="nc">North Carolina</option>
+                <option value="tx">Texas</option>
+                <option value="ca">California</option>
+                <option value="ok">Oklahoma</option>
+                <option value="tn">Tennessee</option>
+                <option value="az">Arizona</option>
+              </select>
+            </p>
+          </div>
+
+          <div class="field-row">
+            <p class="field">
+              <label for="schools">Middle and high schools in scope</label>
+              <input type="number" id="schools" name="schools" min="1" step="1">
+            </p>
+            <p class="field">
+              <label for="teachers">Teachers who would teach CS</label>
+              <input type="number" id="teachers" name="teachers" min="0" step="1">
+            </p>
+          </div>
+
+          <fieldset>
+            <legend>What are you teaching now?</legend>
+            <div class="field-group">
+              <p class="check">
+                <input type="checkbox" id="now-none" name="current" value="none">
+                <label for="now-none">Nothing yet</label>
+              </p>
+              <p class="check">
+                <input type="checkbox" id="now-csd" name="current" value="csd">
+                <label for="now-csd">CS Discoveries</label>
+              </p>
+              <p class="check">
+                <input type="checkbox" id="now-csp" name="current" value="csp">
+                <label for="now-csp">CS Principles</label>
+              </p>
+              <p class="check">
+                <input type="checkbox" id="now-aid" name="current" value="aid">
+                <label for="now-aid">AI Discoveries</label>
+              </p>
+              <p class="check">
+                <input type="checkbox" id="now-aif" name="current" value="aif">
+                <label for="now-aif">AI Foundations</label>
+              </p>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>What is driving this?</legend>
+            <div class="field-group">
+              <p class="check">
+                <input type="radio" id="goal-grad" name="goal" value="graduation">
+                <label for="goal-grad">A new graduation requirement</label>
+              </p>
+              <p class="check">
+                <input type="radio" id="goal-cte" name="goal" value="cte">
+                <label for="goal-cte">Building a CTE pathway</label>
+              </p>
+              <p class="check">
+                <input type="radio" id="goal-ai" name="goal" value="ai">
+                <label for="goal-ai">Adding AI to what we already teach</label>
+              </p>
+              <p class="check">
+                <input type="radio" id="goal-equity" name="goal" value="access">
+                <label for="goal-equity">Widening access across schools</label>
+              </p>
+            </div>
+          </fieldset>
+
+          <p class="field">
+            <label for="constraints">Anything that constrains the plan</label>
+            <textarea id="constraints" name="constraints" rows="3"></textarea>
+          </p>
+
+          <div class="actions">
+            <button type="submit">See recommendations</button>
+            <button type="reset">Start over</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="section" id="results">
+        <h2>Recommendations</h2>
+        <p>
+          Sample output, hard-coded. Nothing here is computed — wiring this up is
+          the build.
+        </p>
+        <div class="table-scroll">
+          <table class="data-table">
+            <caption class="visually-hidden">Recommended courses and professional learning</caption>
+            <thead>
+              <tr>
+                <th scope="col">Recommendation</th>
+                <th scope="col">Grades</th>
+                <th scope="col">Why this one</th>
+                <th scope="col">Professional learning</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>AI Discoveries</td>
+                <td>6&ndash;8</td>
+                <td>No middle school offering today, and AI is the stated driver.</td>
+                <td>One-day workshop, then self-paced</td>
+              </tr>
+              <tr>
+                <td>AI Foundations, Semester 1</td>
+                <td>9&ndash;10</td>
+                <td>Feeds the CTE pathway and counts toward the requirement.</td>
+                <td>Two-day workshop</td>
+              </tr>
+              <tr>
+                <td>CS Principles</td>
+                <td>10&ndash;12</td>
+                <td>Already running. Keep it as the pathway's upper end.</td>
+                <td>None needed</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+    <aside class="section">
+      <h2>Open questions</h2>
+      <ul class="stack">
+        <li>
+          Where is the seam between this tool and the Resource Generator? One
+          recommends what exists; the other makes what does not. Two front doors
+          to the same room is the risk.
+        </li>
+        <li>How many questions before a district abandons the form?</li>
+        <li>Does a recommendation need a price attached, or is that a later step?</li>
+        <li>Does the output need to survive as a shareable link?</li>
+      </ul>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <p><a href="../../">Back to portal</a></p>
+  </footer>
+
+</div>
+</body>
+</html>
