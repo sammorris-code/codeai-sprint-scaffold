@@ -23,11 +23,68 @@ import io
 import json
 import os
 import pathlib
+import posixpath
+import re
 import time
 
 from .lessons import StandardsCatalog, extract_unit
 from .levels import LevelIndex
 from .repo import SUBDIRS, Repo
+
+
+YEAR_SUFFIX = re.compile(r"-(?:19|20)\d{2}$")
+# Words the plain title-caser gets wrong. Districts read these.
+ACRONYMS = {"Ai": "AI", "Api": "API", "Apis": "APIs", "Cs": "CS",
+            "Ui": "UI", "Ux": "UX", "Html": "HTML", "Css": "CSS",
+            "Javascript": "JavaScript"}
+# Kept lowercase unless they open the title.
+SMALL_WORDS = {"a", "an", "and", "at", "by", "for", "from", "in", "of", "on",
+               "or", "the", "to", "with"}
+
+
+class UnitNames:
+    """Display names for units.
+
+    A unit file carries no title of its own. The name a teacher sees comes
+    from elsewhere — for units that are also standalone offerings, from
+    `course_offerings/<key>.json`; for the rest it lives in translation files
+    this extraction does not read.
+
+    So the name is looked up where it exists and derived from the slug where
+    it does not, and which of the two happened is recorded. A derived name is
+    a readable label, not an authored title, and `unit_name_source` is there
+    so nothing downstream has to guess which it is holding. The identifier is
+    always `script_name`; this field is only ever for display.
+    """
+
+    def __init__(self, repo):
+        self.by_key = {}
+        for path in repo.list("course_offerings", suffixes=(".json",)):
+            try:
+                doc = json.loads(repo.read_text(path))
+            except ValueError:
+                continue
+            key = doc.get("key") or posixpath.basename(path)[:-len(".json")]
+            if doc.get("display_name"):
+                self.by_key[key] = doc["display_name"]
+
+    @staticmethod
+    def humanise(script_name):
+        words = YEAR_SUFFIX.sub("", script_name).replace("-", " ").split()
+        out = []
+        for i, word in enumerate(words):
+            capped = word.capitalize()
+            if word.lower() in SMALL_WORDS and i > 0:
+                out.append(word.lower())
+            else:
+                out.append(ACRONYMS.get(capped, capped))
+        return " ".join(out)
+
+    def resolve(self, script_name):
+        for candidate in (script_name, YEAR_SUFFIX.sub("", script_name)):
+            if candidate in self.by_key:
+                return self.by_key[candidate], "offering"
+        return self.humanise(script_name), "derived"
 
 
 def load_course(repo, course_key):
@@ -43,13 +100,14 @@ def load_course(repo, course_key):
             # Blank is a real value here, not a missing one. Keep it as given.
             "displayed_number": prefixes[i] if i < len(prefixes) else None,
         })
+    family = (doc.get("properties") or {}).get("family_name") or ""
     name = course_key
     try:
         offering = json.loads(repo.read_text(
-            f"{SUBDIRS['course_offerings']}/{doc.get('properties', {}).get('family_name', '')}.json"))
+            f"{SUBDIRS['course_offerings']}/{family}.json"))
         name = offering.get("display_name") or name
-    except Exception:
-        pass
+    except Exception:                                      # noqa: BLE001
+        name = UnitNames.humanise(course_key)
     return {"course_key": course_key, "course_name": name, "units": units}
 
 
@@ -105,6 +163,7 @@ def extract(repo, course_keys, cache_dir=None, log=print):
     are read once and attributed to each."""
     index = build_index(repo, cache_dir, log)
     catalog = StandardsCatalog(repo)
+    unit_names = UnitNames(repo)
     log(f"  standards: {len(catalog.by_framework)} frameworks available "
         f"for resolving the curriculum's own citations")
 
@@ -127,6 +186,14 @@ def extract(repo, course_keys, cache_dir=None, log=print):
                              "detail": f"{type(exc).__name__}: {exc}"})
             log(f"    {script_name}: FAILED ({type(exc).__name__}: {exc})")
             continue
+        # The unit file has no title in it, so the display name is resolved
+        # here and stamped on the lessons that will carry it downstream.
+        display_name, source = unit_names.resolve(script_name)
+        result["unit_name"] = display_name
+        result["unit_name_source"] = source
+        for lesson in result["lessons"]:
+            lesson["unit_name"] = display_name
+
         units[script_name] = result
         warnings.extend(result["warnings"])
         words = sum(lv["word_count"] for l in result["lessons"] for lv in l["levels"])
@@ -342,6 +409,7 @@ def write(result, out_dir, log=print):
         ],
         "units": [
             {"script_name": s, "unit_name": u["unit_name"],
+             "unit_name_source": u.get("unit_name_source", "derived"),
              "serialized_at": u["serialized_at"],
              "published_state": u["published_state"],
              "lesson_count": len(u["lessons"]),
