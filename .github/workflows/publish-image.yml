@@ -1,0 +1,61 @@
+# Build the service image and push it to GitHub's registry.
+#
+# The compose file for a hosted box used to build from a git URL, so the host
+# needed no checkout. That does not survive contact with a NAS: the builder
+# there has no `git` binary, so it cannot fetch a git context at all, and the
+# failure is a wall of BuildKit text rather than anything that names the cause.
+#
+# Building here instead is better regardless. The NAS pulls a finished image,
+# which means no toolchain on it, no clone, and the same bytes everywhere.
+#
+# The package is private when first published. Make it public once, in the
+# repository's Packages settings, or `docker login ghcr.io` on the host.
+name: Publish image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'service/**'
+      - 'contract/**'
+      - '.github/workflows/publish-image.yml'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # ghcr requires a lowercase name; the repository already is one.
+          images: ghcr.io/${{ github.repository }}
+          # `main` is what the compose file follows by default. The `sha-`
+          # tag is there so a host can be pinned to an exact commit when it
+          # matters which version is running.
+          tags: |
+            type=raw,value=main
+            type=sha,prefix=sha-
+
+      - uses: docker/build-push-action@v6
+        with:
+          # Repository root, because the Dockerfile copies both service/ and
+          # contract/.
+          context: .
+          file: service/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
