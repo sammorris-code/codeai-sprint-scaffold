@@ -56,6 +56,9 @@ def fake_draft(standards, progress=None):
     }
 
 
+# Keep the real one: a test below exercises its batch-splitting, and the stub
+# would quietly stand in for it and pass without testing anything.
+real_draft_boundaries = boundaries_module.draft_boundaries
 boundaries_module.draft_boundaries = fake_draft
 import service.app.main as main
 main.draft_boundaries = fake_draft
@@ -167,15 +170,10 @@ with TestClient(main.app) as c:
     check("an invented id is not in the valid set",
           "HS-TOTALLY-MADE-UP-99" not in csta.valid_ids(ref))
 
-    print("\nNo line may repeat another")
+    print("\nBoundaries need at least one inclusion and two exclusions")
     def boundary(includes, excludes):
         return DraftedBoundary(identifier="X", boundary_includes=includes,
                                boundary_excludes=excludes, keywords=["k"])
-    try:
-        boundary(["a", "b", "c", "d"], ["x", "y"])
-        check("a fourth inclusion is refused", False, "four were accepted")
-    except ValidationError:
-        check("a fourth inclusion is refused", True)
     try:
         boundary(["a"], ["x"])
         check("a single exclusion is refused", False, "one was accepted")
@@ -198,6 +196,67 @@ with TestClient(main.app) as c:
           f"(14 standards less the umbrella heading)")
     check("the note warns that a high rate is stretching",
           "stretching" in rate["note"])
+
+    print("\nBounds are a sanity check, not the style rule")
+    # An earlier version capped inclusions at three. A standard came back with
+    # four - which is not wrong - and the hard cap took its whole batch, and
+    # then the whole run, down with it. A schema cannot judge redundancy.
+    try:
+        boundary(["a", "b", "c", "d"], ["x", "y"])
+        check("a fourth inclusion is accepted", True)
+    except ValidationError as e:
+        check("a fourth inclusion is accepted", False,
+              "four facets is a judgement call, not a schema error")
+    try:
+        boundary(["a"] * 7, ["x", "y"])
+        check("seven inclusions is still refused as runaway", False)
+    except ValidationError:
+        check("seven inclusions is still refused as runaway", True)
+
+    print("\nOne bad standard does not lose its batch")
+    import types, pydantic as _pyd
+    from service.app.ingestion import boundaries as B
+
+    class Std:
+        hierarchy_role = "standard"; grade_band = "9-12"; clarification = None
+        def __init__(self, i):
+            self.identifier = f"T-{i}"; self.statement = f"Statement {i}."
+            self.concept = "X"
+
+    seen = []
+
+    class Fake:
+        class messages:
+            @staticmethod
+            def parse(**kw):
+                ids = [l.split(": ")[1] for l in kw["messages"][0]["content"].splitlines()
+                       if l.startswith("Identifier: ")]
+                seen.append(len(ids))
+                if "T-4" in ids:
+                    raise _pyd.ValidationError.from_exception_data("DraftedBatch", [])
+                return types.SimpleNamespace(usage=None, parsed_output=B.DraftedBatch(
+                    boundaries=[B.DraftedBoundary(identifier=i, boundary_includes=["a"],
+                                                  boundary_excludes=["x", "y"],
+                                                  keywords=["k"]) for i in ids]))
+
+    real_client = B._client
+    B._client = lambda: Fake()
+    try:
+        # real_draft_boundaries, not B.draft_boundaries: that name now points at
+        # the stub, which would pass this test without running any of the code
+        # it claims to test.
+        real_draft_boundaries([Std(i) for i in range(1, 11)])
+        check("the run fails when a standard cannot be drafted", False, "it did not")
+    except B.BoundaryRefused as e:
+        check("the run fails when a standard cannot be drafted", True)
+        check("and names the one at fault, not the whole batch",
+              e.identifier == "T-4", f"named {e.identifier}")
+        check("having split down to a single standard", 1 in seen,
+              f"batch sizes tried: {seen}")
+        check("the other nine were drafted on the way", len(seen) > 2,
+              f"only {len(seen)} call(s) - no splitting happened")
+    finally:
+        B._client = real_client
 
     print("\nThe same set cannot be ingested twice")
     with open(CSV, "rb") as f:
