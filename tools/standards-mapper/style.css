@@ -163,7 +163,9 @@ main > .section:first-child {
   color: var(--ink-quiet);
 }
 
-/* --- Banners ------------------------------------------------------------ */
+/* --- Banners -------------------------------------------------------------
+   Only one left: the count-check problem. The publish banner is gone — the
+   run's status word in the header says the same thing in one word. */
 
 .wb-banner {
   border-radius: var(--radius);
@@ -182,26 +184,10 @@ main > .section:first-child {
   margin: 0 0 0.25rem;
 }
 
-.wb-banner-holding {
-  background: var(--purple-light);
-  border-left-color: var(--purple);
-  color: var(--purple-dark);
-}
-
-.wb-banner-published {
-  background: var(--green-light);
-  border-left-color: var(--green);
-  color: var(--green-dark);
-}
-
 .wb-banner-problem {
   background: var(--pink-light);
   border-left-color: var(--pink);
   color: var(--pink-dark);
-}
-
-.wb-banner-aside {
-  margin: 0.5rem 0 0;
 }
 
 /* --- Filter row --------------------------------------------------------- */
@@ -219,6 +205,34 @@ main > .section:first-child {
   flex: 0 1 auto;
   align-self: center;
   margin: 0;
+}
+
+/* --- Cards ---------------------------------------------------------------
+   The standard stays put while its evidence scrolls.
+
+   position: sticky on a block inside the card, not on the card itself: the
+   card scrolls away normally when you reach the next standard, but while you
+   are inside one, the identifier, the statement and the settled matches stay
+   at the top of the window. Nothing else on the page is fixed, so top is 0.
+
+   The background is opaque on purpose - sticky content sits over whatever
+   scrolls beneath it, and a transparent one would let evidence text show
+   through the statement. */
+
+.wb-card-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
+  padding-top: 0.25rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Sticky needs a height to be worth having. Under about 40rem the header
+   would cover most of the viewport, so it scrolls with everything else. */
+@media (max-height: 40rem) {
+  .wb-card-sticky { position: static; }
 }
 
 /* --- Cards -------------------------------------------------------------- */
@@ -263,7 +277,35 @@ main > .section:first-child {
 }
 
 .wb-statement {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.5rem;
+}
+
+/* --- Matches that no longer need a person -------------------------------
+   One line of pills instead of a card each. The word is inside the pill, so
+   accepted and rejected are told apart by reading, not only by colour. */
+
+.wb-settled {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0 0 0.5rem;
+}
+
+.wb-settled-label {
+  font-size: 0.8125rem;
+  color: var(--ink-quiet);
+}
+
+.wb-pill-rejected {
+  background: var(--pink-light);
+  color: var(--pink-dark);
+  font-weight: 500;
+}
+
+.wb-all-settled {
+  margin: 0;
+  color: var(--ink-quiet);
 }
 
 /* --- Pills -------------------------------------------------------------- */
@@ -378,6 +420,14 @@ main > .section:first-child {
 .wb-record-title {
   font-family: var(--font-display);
   font-weight: 500;
+}
+
+/* Which unit this lesson is in, and what the engine proposed. Always shown:
+   a lesson name on its own does not locate it in the course. */
+.wb-record-where {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  color: var(--ink-quiet);
 }
 
 .wb-objective,

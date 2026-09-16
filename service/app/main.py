@@ -391,13 +391,17 @@ def list_snapshots():
 def list_courses(snapshot_id: int | None = None):
     """Units come back nested, ordered by position.
 
+    `semester` comes back because the review screen names the work as a person
+    would - "AI Foundations, Semester 1" - and the column is null for most
+    courses, so the interface has to be told rather than guess from the name.
+
     position and displayed_number are both returned and they are not the same
     thing. One real course leaves its first four units blank and numbers the
     last two 1 and 2. Sort by position. Show displayed_number. Never compute
     one from the other.
     """
     items = rows("""
-        SELECT c.id, c.snapshot_id, c.course_key, c.course_name,
+        SELECT c.id, c.snapshot_id, c.course_key, c.course_name, c.semester,
                COALESCE(json_agg(json_build_object(
                    'id', u.id, 'script_name', u.script_name,
                    'unit_name', u.unit_name, 'position', cu.position,
@@ -609,8 +613,21 @@ def review_queue(run_id: int, status: str | None = None, flagged: bool | None = 
     Standards with no evidence at all are still returned. Eight of the fourteen
     demo standards have none, for six different reasons, and a queue that drops
     them makes the totals wrong.
+
+    **Each record appears once.** `displayed_number` and `position` live on
+    `course_unit`, and a unit belongs to more than one course - the real AIF
+    corpus shares 15 units across three. Joining `course_unit` on the unit
+    alone therefore emitted the same alignment record once per course sharing
+    its unit, with only those two fields differing. On an Oklahoma run that
+    turned 101 records into 202 and made "needs your check" read double.
+
+    The row was never duplicated in the store; the join invented the copies.
+    `/api/lessons` already had the same problem and solved it the same way -
+    a lateral picking exactly one link. Here the run names the course, so the
+    lateral picks that course's link rather than an arbitrary one, which also
+    makes the unit number the one that course actually shows.
     """
-    run_or_404(run_id)
+    run = run_or_404(run_id)
     items = rows(f"""
         SELECT json_build_object(
                  'id', s.id, 'identifier', s.identifier, 'statement', s.statement,
@@ -638,7 +655,14 @@ def review_queue(run_id: int, status: str | None = None, flagged: bool | None = 
                  FROM alignment_record r
                  JOIN lesson l ON l.id = r.lesson_id
                  JOIN unit u ON u.id = l.unit_id
-                 LEFT JOIN course_unit cu ON cu.unit_id = u.id
+                 LEFT JOIN LATERAL (
+                     SELECT cu.position, cu.displayed_number
+                       FROM course_unit cu
+                      WHERE cu.unit_id = u.id
+                        AND cu.course_id = %(course)s
+                      ORDER BY cu.course_id
+                      LIMIT 1
+                 ) cu ON true
                  WHERE r.run_id = o.run_id AND r.standard_id = o.standard_id
                    AND (%(status)s::text IS NULL OR r.review_status = %(status)s)
                    AND (%(flagged)s::bool IS NULL
@@ -648,7 +672,8 @@ def review_queue(run_id: int, status: str | None = None, flagged: bool | None = 
         JOIN standard s ON s.id = o.standard_id
         WHERE o.run_id = %(run)s
         ORDER BY s.id""",
-        {"run": run_id, "status": status, "flagged": flagged})
+        {"run": run_id, "status": status, "flagged": flagged,
+         "course": run["course_id"]})
 
     for item in items:
         item["counts"] = {

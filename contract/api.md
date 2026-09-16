@@ -143,6 +143,8 @@ Starts an extraction from upstream. Returns a job id. This is a scheduled job,
 not a monitor.
 
 ### `GET /api/courses?snapshot_id=`
+Carries `semester` (`'S1'`, `'S2'`, or null — it is null for most courses), so a
+screen can name the work the way a person says it.
 Fixture: `courses.json`. Note the unit whose `displayed_number` is empty.
 
 ### `GET /api/lessons?course_id=`
@@ -198,7 +200,22 @@ Fixture: `run.json`. Holds the counts for the queue header.
 ### `GET /api/runs/{id}/queue`
 **The main screen.** One standard at a time, with its records and evidence.
 
-Query: `status` (`proposed` default), `flagged` (bool), `concept`, `cursor`.
+Query: `status`, `flagged` (bool), `concept`, `cursor`. **No filter is applied
+by default** — every record comes back whatever its review status, which is what
+lets the screen show decided matches alongside the ones still waiting. This line
+used to claim `proposed` was the default; the code never did that and the screen
+was built against the code.
+
+`cursor` is in the envelope and is always `null`: the endpoint returns the whole
+run in one response and has never paged. A client should still follow it if it
+is ever non-null rather than assume one page is everything.
+
+**One row per (standard, lesson).** `displayed_number` and `position` come from
+`course_unit`, and a unit belongs to more than one course, so joining on the
+unit alone returned the same record once per course sharing it — 202 rows for
+101 records on a real Oklahoma run. The join picks the link belonging to the
+run's own course, which also means the unit number shown is the one that course
+uses.
 
 Fixture: `review-queue.json`. It carries every case listed in the README.
 
