@@ -92,6 +92,12 @@ or work-experience requirement. It gets its own reporting bucket. It is not a ga
 `nearest_csta` is a drafting aid and an audit trail. It is never a validated
 crosswalk, and the interface must not present it as one.
 
+An identifier only reaches this column if the drafter quoted the CSTA wording it
+adapted and that quote survived checking — it has to be genuinely in the
+standard it credits, and its language has to be visible in the boundary that was
+written. The column is a plain `text[]` either way, so nothing reading it needs
+to change. What changed is how much an entry is worth.
+
 ---
 
 ## 2. Curriculum

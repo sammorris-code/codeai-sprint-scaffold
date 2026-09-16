@@ -109,3 +109,23 @@ def valid_ids(standards):
     """For checking what came back. An identifier the model invented is worse
     than an empty list, so the caller drops anything not in here."""
     return {s["id"] for s in standards}
+
+
+def texts_for(standards):
+    """Each standard's own words, keyed by identifier.
+
+    The boundary gate needs this. A drafter that claims a CSTA standard as a
+    nearest analog must quote the span of it that it adapted, and a quote can
+    only be checked against the thing it is quoting from.
+    """
+    out = {}
+    for s in standards:
+        parts = [s.get("statement") or ""]
+        for key in ("boundary_includes", "boundary_excludes"):
+            value = s.get(key)
+            if isinstance(value, list):
+                parts.extend(str(v) for v in value)
+            elif value:
+                parts.append(str(value))
+        out[s["id"]] = " ".join(parts)
+    return out

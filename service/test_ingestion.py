@@ -21,7 +21,8 @@ import pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from service.app.ingestion import boundaries as boundaries_module
-from service.app.ingestion.boundaries import DraftedBoundary
+from service.app.ingestion.boundaries import CstaAnalog, DraftedBoundary
+from service.app.ingestion import analogs as analog_gate
 
 CSV = pathlib.Path(__file__).parent / "sample_documents" / "DEMO_CS_2026.csv"
 
@@ -38,7 +39,8 @@ def check(name, condition, detail=""):
         print(f"  FAIL  {name}  {detail}")
 
 
-def fake_draft(standards, progress=None, include_specialty=False, usage=None):
+def fake_draft(standards, progress=None, include_specialty=False,
+               usage=None, gate=None):
     """Stands in for Claude. Returns a boundary shaped like a real one for
     every standard that is not a heading.
 
@@ -46,6 +48,8 @@ def fake_draft(standards, progress=None, include_specialty=False, usage=None):
     function grew a `usage` argument and this did not - and every ingest test
     failed with an unexpected-keyword error that looked like a service bug.
     """
+    if gate is not None:
+        gate.update({"dropped": 0, "reasons": {}, "examples": []})
     if usage is not None:
         drafting = [s for s in standards if s.hierarchy_role != "umbrella"]
         usage.update({"calls": 1, "input_tokens": 400 * len(drafting),
@@ -60,7 +64,7 @@ def fake_draft(standards, progress=None, include_specialty=False, usage=None):
             boundary_excludes=["A mention with no student work.",
                                "A word match with no task behind it."],
             keywords=["demo", s.concept.lower()],
-            nearest_csta=[],
+            analogs=[],
             unclear=None,
         )
         for s in standards if s.hierarchy_role != "umbrella"
@@ -212,6 +216,10 @@ with TestClient(main.app) as c:
           f"(14 standards less the umbrella heading)")
     check("the note warns that a high rate is stretching",
           "stretching" in rate["note"])
+    check("the response reports what the analog gate rejected",
+          "rejected" in rate and "dropped" in rate["rejected"],
+          "a gate set too strict looks identical to a drafter that stopped "
+          "stretching unless the drops are reported")
 
     print("\nBounds are a sanity check, not the style rule")
     # An earlier version capped inclusions at three. A standard came back with
@@ -389,6 +397,60 @@ with TestClient(main.app) as c:
     check("is refused", r.status_code == 422, f"got {r.status_code}")
 
     main.execute("DELETE FROM standards_set WHERE id = %(i)s", {"i": set_id})
+
+print("\nThe analog gate checks the evidence, not the claim")
+# A bare identifier is an assertion and nothing can test an assertion. On a real
+# 55-standard run, 80% of standards came back with an analog against a prompt
+# saying most have none. So the drafter now quotes the CSTA span it adapted,
+# and these are the checks that quote has to survive.
+CSTA_TEXT = ("Decompose a problem into smaller parts to design a modular "
+             "program. Counts: breaking a task into named procedures.")
+
+
+def gated(adapted, includes=None, csta_text=CSTA_TEXT):
+    """Run one claimed analog through the gate. Returns the reason it was
+    dropped, or None when it was kept."""
+    b = DraftedBoundary(
+        identifier="OK-1",
+        boundary_includes=includes or
+            ["learners decompose a problem into smaller parts before coding"],
+        boundary_excludes=["naming steps without writing any", "watching a demo"],
+        keywords=["decompose"],
+        analogs=[CstaAnalog(identifier="X-1", adapted=adapted)])
+    dropped = analog_gate.apply_gate(b, {"X-1": csta_text})
+    return dropped[0][1] if dropped else None
+
+
+check("a span quoted from the standard and carried into the boundary is kept",
+      gated("decompose a problem into smaller parts") is None)
+
+check("a span that is not in the CSTA standard it credits is dropped",
+      gated("evaluate a design against its specification") is not None,
+      "this is the check that cannot be gamed by quoting the boundary back")
+
+check("a span that left no trace in the boundary is dropped",
+      gated("breaking a task into named procedures",
+            includes=["learners name three sorting algorithms"]) is not None,
+      "wording that was adapted shows up in the wording")
+
+check("a one-word span is too short to prove anything",
+      gated("abstraction") is not None,
+      "a single term is a substring of half the reference")
+
+check("punctuation and case do not decide the check",
+      gated("Decompose a problem, into smaller parts.") is None,
+      "quotes drift by a comma; that is not evidence of anything")
+
+check("the identifiers survive the gate as a plain list of strings",
+      DraftedBoundary(identifier="OK-2", boundary_includes=["a"],
+                      boundary_excludes=["b", "c"], keywords=["d"],
+                      analogs=[CstaAnalog(identifier="X-1", adapted="q")]
+                      ).nearest_csta == ["X-1"],
+      "the database column stays text[]; nothing downstream changes")
+
+check("a reference with no text for the standard keeps the analog",
+      gated("decompose a problem into smaller parts", csta_text=None) is None,
+      "a gap in our own files must not be charged to the drafter")
 
 print()
 print(f"{passes} passed, {len(failures)} failed")
