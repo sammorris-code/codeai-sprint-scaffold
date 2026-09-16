@@ -86,14 +86,98 @@ BLOOM = ("analyze", "evaluate", "create", "apply", "understand", "remember",
          "explain", "describe", "compare", "identify", "implement", "design",
          "develop", "build", "write", "test", "debug", "predict", "model")
 
-# The student told the model to write the code, rather than writing it.
-AI_WROTE = re.compile(
+# --------------------------------------------------------------------------
+# Authorship: who wrote the code.
+#
+# Three observable cases, not two. The middle one is the whole point.
+#
+#   student_authored   the student types or edits the code
+#   student_specified  the student authored the algorithm — a flowchart,
+#                      pseudocode, a rule table, or a completed sentence frame
+#                      — and directed the AI from it
+#   outcome_prompted   the student described a wanted outcome only
+#
+# "Build me a tool that calculates total price" is outcome_prompted. "Use this
+# flowchart to calculate total price" is student_specified, because the student
+# determined the logic and the model transcribed it.
+#
+# The tool records which of the three happened. **It does not decide whether
+# student_specified counts as writing.** That is a policy, set once per
+# framework in AUTHORSHIP_POLICY below, so a state that disagrees changes a
+# setting rather than forcing a re-extraction.
+
+AI_DIRECTED = re.compile(
     r"\b(ask|prompt|tell)\s+(the\s+)?(ai|assistant|chatbot|model)\b"
     r"|\bhave\s+(the\s+)?ai\s+(write|generate|create)\b"
     r"|\bgenerate[sd]?\s+(the\s+)?code\b", re.I)
+
+# The student typed it themselves.
 STUDENT_WROTE = re.compile(
     r"\b(write|edit|change|fix|add|type)\b[^.]{0,40}\b(code|function|line|"
-    r"statement|program|loop|conditional)\b", re.I)
+    r"statement|program|loop|conditional|variable)\b", re.I)
+
+# The instruction points back at something the student made.
+SPEC_REFERENCE = re.compile(
+    r"\b(your|this|that)\s+(flowchart|pseudocode|plan|planning|algorithm|"
+    r"diagram|sketch|outline|rules?|table|design|steps|conditions?|"
+    r"sentence|statement)\b"
+    r"|\breference this\b|\bbased on your\b|\busing your\b|\bfrom your\b", re.I)
+
+# The student authored a specification somewhere in this level. A completed
+# sentence frame counts: the student determined the behaviour, which is the
+# thing the policy cares about, and the shape it was written in is not.
+SPEC_AUTHORED = re.compile(
+    r"\b(flowchart|pseudocode|algorithm|decision table|rule table)\b"
+    r"|\bplan (your|the|out|in|it)\b"
+    r"|\bspec\.md\b|\bspec file\b|\bwrite (a|your) spec\b"
+    r"|\bin plain english\b"
+    r"|\bwrite your rule\b"
+    r"|\bcomplete(?:\s+this)?\s*:\s*[\"“]"
+    r"|\bfill in the blank\b", re.I)
+
+# Did the student check what came back?
+VERIFIED = re.compile(
+    r"\b(test|check|verify|confirm|compare)\b[^.]{0,60}"
+    r"\b(it|this|that|your|the|each|result|output|code|work|behaviou?r)\b"
+    r"|\bdoes it (work|match)\b|\btry it\b", re.I)
+
+# The framework decision, made once. Code.org's position: directing a model
+# from an algorithm the student authored is writing. Describing an outcome is
+# not.
+AUTHORSHIP_POLICY = {
+    "student_authored": "writing",
+    "student_specified": "writing",
+    "outcome_prompted": "not writing",
+}
+
+
+def classify_authorship(text):
+    """Which of the three cases this level is, and whether it was checked.
+
+    Returns (case, verified, borderline). `borderline` marks a level the rule
+    could not separate confidently, so it reaches a person instead of being
+    counted quietly.
+    """
+    directed = bool(AI_DIRECTED.search(text))
+    verified = bool(VERIFIED.search(text))
+
+    if not directed:
+        return "student_authored", verified, False
+
+    refers = bool(SPEC_REFERENCE.search(text))
+    authored = bool(SPEC_AUTHORED.search(text))
+    if refers or authored:
+        # Directed from something the student determined. Either signal alone
+        # is enough: the specification is usually authored in an earlier level
+        # ("import your flowchart") so the level that uses it rarely names
+        # making it, and vice versa. Requiring both marked clear cases as
+        # doubtful.
+        return "student_specified", verified, False
+    if STUDENT_WROTE.search(text):
+        # The model writes part and the student edits part, in one level. That
+        # is genuinely mixed, and it is the case worth a person's eye.
+        return "student_specified", verified, True
+    return "outcome_prompted", verified, False
 
 ALTERNATE_GROUP = re.compile(r"alternate", re.I)
 
@@ -120,7 +204,10 @@ def distil(lesson):
     actions, choice_points, produces, checked = [], [], [], []
     signals = {"level_type": 0, "do_this": 0, "directions": 0,
                "numbered": 0, "imperative": 0}
-    code_by_student = code_by_ai = 0
+    authorship = {"student_authored": 0, "student_specified": 0,
+                  "outcome_prompted": 0}
+    verified_levels = 0
+    borderline = []
     reading_levels = 0
 
     for level in lesson.get("levels") or []:
@@ -143,11 +230,15 @@ def distil(lesson):
             signals[name] += 1
         signals["level_type"] += 1
 
+        case = checked_output = None
         if is_code:
-            if AI_WROTE.search(text):
-                code_by_ai += 1
-            elif STUDENT_WROTE.search(text) or not AI_WROTE.search(text):
-                code_by_student += 1
+            case, checked_output, is_borderline = classify_authorship(text)
+            authorship[case] += 1
+            if checked_output:
+                verified_levels += 1
+            if is_borderline:
+                borderline.append({"level": level.get("level_name"),
+                                   "read_as": case})
 
         entry = {
             "level": level.get("level_name"),
@@ -160,6 +251,8 @@ def distil(lesson):
             "is_assessment": bool(context.get("is_assessment")),
             "is_bonus": bool(context.get("is_bonus")),
             "word_count": level.get("word_count", 0),
+            "authorship": case,
+            "checked_the_output": checked_output,
         }
         actions.append(entry)
 
@@ -206,11 +299,16 @@ def distil(lesson):
         questions.append(
             "Every student action here sits in a choice branch. Any claim is "
             "met by a fraction of the class.")
-    if code_by_ai and code_by_student:
+    if authorship["outcome_prompted"]:
         questions.append(
-            f"Code is written both ways here: {code_by_student} levels look "
-            f"student-written, {code_by_ai} look AI-written at the student's "
-            f"direction. The framework decides whether prompting counts.")
+            f"{authorship['outcome_prompted']} code levels ask the model for "
+            f"an outcome without the student specifying the logic first. Under "
+            f"our policy that is not writing. Check before crediting a "
+            f"programming standard to them.")
+    for item in borderline:
+        questions.append(
+            f"`{item['level']}` was read as {item['read_as']}, but the "
+            f"evidence is mixed. Read the level before relying on it.")
     if not actions and reading_levels:
         questions.append(
             "The student reads and watches but produces nothing. That may be "
@@ -231,10 +329,19 @@ def distil(lesson):
         "produces": produces,
         "checked": checked,
         "authorship": {
-            "code_levels_student_written": code_by_student,
-            "code_levels_ai_written_at_student_direction": code_by_ai,
-            "note": "Recorded, not judged. The policy is one written decision "
-                    "per framework, not an implicit judgement per lesson.",
+            "student_authored": authorship["student_authored"],
+            "student_specified": authorship["student_specified"],
+            "outcome_prompted": authorship["outcome_prompted"],
+            "levels_where_output_was_checked": verified_levels,
+            "borderline": borderline,
+            "policy": AUTHORSHIP_POLICY,
+            "counts_as_writing_under_policy": sum(
+                count for case, count in authorship.items()
+                if AUTHORSHIP_POLICY.get(case) == "writing"),
+            "note": "The three counts are observations. Which of them counts "
+                    "as writing is a policy, set once per framework, so a "
+                    "state that disagrees changes a setting rather than "
+                    "forcing a re-extraction.",
         },
         "reading_levels": reading_levels,
         "signals": signals,
@@ -299,15 +406,28 @@ def to_markdown(record):
         out += [f"- `{c['level']}` — {c['how']}" for c in record["checked"]]
         out.append("")
 
-    authorship = record["authorship"]
-    if authorship["code_levels_student_written"] or \
-            authorship["code_levels_ai_written_at_student_direction"]:
+    a = record["authorship"]
+    if a["student_authored"] or a["student_specified"] or a["outcome_prompted"]:
         out += ["## Who writes the code", "",
-                f"- student written: "
-                f"{authorship['code_levels_student_written']} levels",
-                f"- AI written at the student's direction: "
-                f"{authorship['code_levels_ai_written_at_student_direction']} levels",
-                "", f"*{authorship['note']}*", ""]
+                f"- **student authored** — typed or edited it: "
+                f"{a['student_authored']} levels",
+                f"- **student specified** — directed the model from an "
+                f"algorithm they wrote: {a['student_specified']} levels",
+                f"- **outcome prompted** — asked for a result, did not specify "
+                f"the logic: {a['outcome_prompted']} levels",
+                f"- output checked against the specification in "
+                f"{a['levels_where_output_was_checked']} of them",
+                ""]
+        counted = a["counts_as_writing_under_policy"]
+        out += [f"Under the current policy, **{counted} of these count as "
+                f"writing**. Policy: " +
+                ", ".join(f"`{k}` = {v}" for k, v in a["policy"].items()),
+                "", f"*{a['note']}*", ""]
+        if a["borderline"]:
+            out += ["Borderline, read the level before relying on it:", ""]
+            out += [f"- `{b['level']}` — read as {b['read_as']}"
+                    for b in a["borderline"]]
+            out.append("")
 
     signals = record["signals"]
     out += ["## Where these actions came from", "",

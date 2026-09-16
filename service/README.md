@@ -362,9 +362,36 @@ derived and a flag is a thing somebody forgets. **It must never replace the
 corpus.** A distilled step is a pointer to evidence; the student screen is the
 evidence.
 
-On the AIF corpus it reaches 145 of 148 taught lessons, flags the 7 alternate
-progressions, and records 414 student-written against 82 AI-written code
-levels — as a fact for the framework to rule on, not a judgement.
+On the AIF corpus it reaches 145 of 148 taught lessons and flags the 7 alternate
+progressions.
+
+### Who writes the code
+
+Three observable cases, not two. The middle one is the point:
+
+| | Meaning | AIF levels |
+|---|---|---|
+| `student_authored` | the student types or edits it | 414 |
+| `student_specified` | the student authored the algorithm — a flowchart, pseudocode, a rule table, a completed sentence frame — and directed the model from it | 54 |
+| `outcome_prompted` | the student described a wanted outcome only | 28 |
+
+*"Build me a tool that calculates total price"* is `outcome_prompted`. *"Use
+this flowchart to calculate total price"* is `student_specified`, because the
+student determined the logic and the model transcribed it.
+
+**The tool records which of the three happened. It does not decide whether
+`student_specified` counts as writing.** That is a policy, set once in
+`AUTHORSHIP_POLICY`, and Code.org's position is that it does — so 468 of the 496
+code levels count as writing today. A state that disagrees changes a setting;
+nobody re-extracts the corpus.
+
+8 levels are marked borderline, where the model writes part and the student
+edits part in the same level. Those reach a person rather than a bucket.
+
+Checked against the two cases this rule exists to separate. AIF S2 Lesson 5
+imports a student-made flowchart and prompts from it: four levels,
+`student_specified`, all verified against the flowchart. Lesson 2 asks the model
+to show a fixed message: `outcome_prompted`.
 
 Both halves run in one command. They used to be two, and a corpus with lesson
 plans but no student instructions is the exact undercount this pipeline exists
