@@ -114,6 +114,31 @@ for a, f in zip(api["items"], fixture["items"]):
         check(f"{f['standard_set']}.{key}", a[key] == f[key],
               f"api {a[key]!r} vs fixture {f[key]!r}")
 
+print("\nRuns")
+api = c.get("/api/runs").json()
+fixture = strip(fx("runs"))
+check("count matches", api["total"] == fixture["total"],
+      f"api {api['total']} vs fixture {fixture['total']}")
+for a, f in zip(api["items"], fixture["items"]):
+    for key in ("id", "set_id", "course_id", "scope_note", "grain", "status"):
+        check(f"run {f['id']}.{key}", a[key] == f[key],
+              f"api {a[key]!r} vs fixture {f[key]!r}")
+check("the list carries no counts", "counts" not in api["items"][0],
+      "a menu should not pay for every run's record counts")
+
+# The filters are the whole point of the endpoint: the page uses them to
+# resolve "this set against this course" without knowing a run id.
+one_run = fx("runs")["items"][0]
+check("set_id filter narrows",
+      c.get("/api/runs", params={"set_id": one_run["set_id"]}).json()["total"] == 1)
+check("course_id filter narrows",
+      c.get("/api/runs", params={"course_id": one_run["course_id"]}).json()["total"] == 1)
+check("both filters combine",
+      c.get("/api/runs", params={"set_id": one_run["set_id"],
+                                 "course_id": one_run["course_id"]}).json()["total"] == 1)
+check("a set with no runs returns an empty list, not a 404",
+      c.get("/api/runs", params={"set_id": 2}).json()["total"] == 0)
+
 print("\nReview queue")
 api = c.get("/api/runs/1/queue").json()
 fixture = strip(fx("review-queue"))
@@ -134,6 +159,10 @@ for f in fixture["items"]:
     check(f"{ident} outcome", a["outcome"]["outcome"] == f["outcome"]["outcome"],
           f"api {a['outcome']['outcome']!r} vs fixture {f['outcome']['outcome']!r}")
     check(f"{ident} in_scope", a["outcome"]["in_scope"] == f["outcome"]["in_scope"])
+    # The queue is the only place the interface meets a standard, so it is the
+    # only place a grade can come from. The header names one.
+    check(f"{ident} grade_band", a["standard"]["grade_band"] == f["standard"]["grade_band"],
+          f"api {a['standard'].get('grade_band')!r} vs fixture {f['standard']['grade_band']!r}")
     check(f"{ident} record count", len(a["records"]) == len(f["records"]),
           f"api {len(a['records'])} vs fixture {len(f['records'])}")
     for ar, fr in zip(a["records"], f["records"]):
