@@ -256,6 +256,19 @@ def main():
 
         conn.commit()
     finally:
+        # Leave the database as this test found it. The snapshots written above
+        # are real ones, and `load_fixtures` now refuses to touch a database
+        # that holds real data — so leaving them behind would block the next
+        # run of test_contract.py with a message about protecting data that is
+        # actually this test's litter.
+        try:
+            conn.execute("""TRUNCATE review_event, standard_outcome,
+                            alignment_record, run, lesson, course_unit, unit,
+                            course, snapshot, standard, standards_set
+                            RESTART IDENTITY CASCADE""")
+            conn.commit()
+        except Exception:                                      # noqa: BLE001
+            pass
         conn.close()
         shutil.rmtree(tmp, ignore_errors=True)
 

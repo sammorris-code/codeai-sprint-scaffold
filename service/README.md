@@ -25,6 +25,46 @@ Then:
 
 Stop it with Ctrl and C. `docker compose ... down -v` also throws the data away.
 
+### Your data survives a restart. It did not always.
+
+The database lives in a named Docker volume (`pgdata`), so it survives `up`,
+`down`, and a reboot. Only `down -v` destroys it.
+
+That was never the risk. The risk was the `seed` service, which runs
+`load_fixtures.py` on every `up` — and `load_fixtures.py` truncates all eleven
+tables before loading the demo rows. A volume that persists perfectly, emptied
+on every startup, persists nothing. **Anything you ingested would not have
+survived your next `docker compose up`.**
+
+So the seed step now looks first. If the database holds anything the fixtures
+did not create — a standards set whose framework is not `DEMO`, or a curriculum
+snapshot from a real commit — it prints what it found, loads nothing, and exits
+0 so the API still starts.
+
+```
+The database holds work the fixtures did not put there:
+  - standards set OK/CS-Standards/2018, 55 standards
+  - curriculum snapshot bc34ca23dfee, 190 lessons
+
+Leaving it alone. The sample data is not loaded.
+```
+
+`python3 service/load_fixtures.py --force` overwrites it anyway, when that is
+what you want.
+
+**`test_contract.py` resets the database before it runs**, for the same reason
+and by the same route. It now refuses when the database holds real work, and
+names what it would have destroyed. This is not hypothetical: a run of that
+test against a working database deleted an ingested state framework, which is
+why the guard exists. Point `DATABASE_URL` at a scratch database:
+
+```bash
+createdb standards_test          # or any empty database
+DATABASE_URL=postgresql://localhost/standards_test python3 service/test_contract.py
+```
+
+`ALLOW_DESTRUCTIVE_RESET=1` overrides it, if you mean it.
+
 ---
 
 ## Point the interface at it
