@@ -1,14 +1,15 @@
-/* mapper.js — fills the two menus on this page from the data source.
+/* mapper.js — fills the two menus at the top of the page.
  *
  * Before this existed, the Framework menu listed six US states written into the
  * page by hand. That is the thing this file removes. No state is built into any
  * tool: the menu shows whichever standards sets the store holds, and a set that
  * nobody has ingested does not appear.
  *
- * Reads window.StandardsSource, defined in loader.js.
+ * It no longer fetches anything. workbench.js loads the page's data once and
+ * hands it to every panel, this one included.
  */
 
-(function () {
+window.RunForm = (function () {
   'use strict';
 
   var S = window.StandardsSource;
@@ -21,7 +22,7 @@
 
   /* Replaces a menu's options. Keeps the first "Select a ..." option, because a
    * menu that starts on a real value invites an accidental run. */
-  function fill(select, options, placeholder) {
+  function fillSelect(select, options, placeholder) {
     select.innerHTML = '';
     var first = document.createElement('option');
     first.value = '';
@@ -47,9 +48,40 @@
     status.textContent = message;
   }
 
+  function fill(ctx) {
+    var sets = ctx.sets;
+    var courses = ctx.courses;
+
+    fillSelect(frameworkSelect, sets.map(function (set) {
+      return {
+        value: String(set.id),
+        label: S.setLabel(set) + ' — ' + S.setStatus(set).text
+      };
+    }), sets.length ? 'Select a standards set' : 'No standards sets yet');
+
+    fillSelect(courseSelect, courses.map(function (course) {
+      return { value: String(course.id), label: course.course_name };
+    }), courses.length ? 'Select a course' : 'No courses yet');
+
+    if (!sets.length) {
+      frameworkSelect.disabled = true;
+      say('The store holds no standards sets. Ingest one to begin.');
+      return;
+    }
+
+    /* This used to count the sets whose boundary notes nobody had checked and
+     * report it here, back when that number decided whether results could
+     * reach a district. It decides nothing now (contract/REVIEW-DESIGN.md), so
+     * putting it in front of somebody about to start a run only invites them
+     * to think they have a problem to clear first. Each set's own notes state
+     * is still on its line in the menu, which is where it is useful. */
+    say(count(sets.length, 'standards set') + ' and ' +
+        count(courses.length, 'course') + ' in the store.');
+  }
+
   /* The page was opened from a file path. Say what happened and what to do
    * about it, rather than leaving two empty menus and no explanation. */
-  function showFallback() {
+  function needsServing() {
     fallback.hidden = false;
     form.hidden = true;
     say('This page needs to be served before it can read any data.');
@@ -61,53 +93,9 @@
     courseSelect.disabled = true;
   }
 
-  function start() {
-    if (S.isFilePath()) {
-      showFallback();
-      return;
-    }
-
-    say('Reading the standards sets…');
-    frameworkSelect.disabled = true;
-    courseSelect.disabled = true;
-
-    Promise.all([S.load('standards-sets'), S.load('courses')])
-      .then(function (results) {
-        var sets = results[0].items || [];
-        var courses = results[1].items || [];
-
-        fill(frameworkSelect, sets.map(function (set) {
-          return {
-            value: String(set.id),
-            label: S.setLabel(set) + ' — ' + S.setStatus(set).text
-          };
-        }), sets.length ? 'Select a standards set' : 'No standards sets yet');
-
-        fill(courseSelect, courses.map(function (course) {
-          return { value: String(course.id), label: course.course_name };
-        }), courses.length ? 'Select a course' : 'No courses yet');
-
-        if (!sets.length) {
-          frameworkSelect.disabled = true;
-          say('The store holds no standards sets. Ingest one to begin.');
-          return;
-        }
-
-        var unchecked = sets.filter(function (set) { return !set.all_boundaries_checked; }).length;
-        say(count(sets.length, 'standards set') + ', ' +
-            count(courses.length, 'course') + '. ' +
-            (unchecked
-              ? count(unchecked, 'set') + ' ' + (unchecked === 1 ? 'has' : 'have') +
-                ' boundary notes that nobody has checked yet. Those notes are ' +
-                'drafts; a reviewer checks one when an alignment turns on it.'
-              : 'Every set has been checked by a person.'));
-      })
-      .catch(showError);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start);
-  } else {
-    start();
-  }
+  return {
+    render: fill,
+    needsServing: needsServing,
+    showError: showError
+  };
 })();

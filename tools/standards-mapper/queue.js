@@ -1,27 +1,39 @@
-/* queue.js — Step 3: Accept, Reject, and a decisions file.
+/* queue.js — the review queue, as a list of standard cards.
  *
- * Loads the review-queue fixture through loader.js and shows one standard at
- * a time: its statement, the boundary notes, then the lessons proposed as
- * evidence. Each proposed lesson gets a depth control and Accept/Reject.
+ * One card per standard: what it says, what counts as teaching it and what
+ * does not, then each lesson proposed as evidence with a depth control and
+ * Accept/Reject beside it.
  *
- * Where a decision goes once made is decisions-store.js's job, not this
- * file's. This file only ever calls window.ReviewDecisions.
+ * Two things about this file are deliberate and worth keeping.
+ *
+ * 1. Where a decision goes once made is decisions-store.js's job. This file
+ *    only ever calls window.ReviewDecisions.
+ *
+ * 2. A decision rebuilds ONE card, not the whole list. Rebuilding everything
+ *    would drop keyboard focus back to <body> on every Accept, which on a
+ *    forty-standard queue means losing your place forty times. replaceCard()
+ *    swaps a single <li> and puts focus back where the reviewer left it.
+ *
+ * What this file no longer does: hold back publishing until the set's
+ * boundary notes were checked. That rule is gone (contract/REVIEW-DESIGN.md)
+ * and publishing now belongs to the run, not to this queue - run-summary.js
+ * states it.
  */
 
-(function () {
+window.ReviewQueue = (function () {
   'use strict';
 
-  var S = window.StandardsSource;
   var D = window.ReviewDecisions;
+
   var mount = document.getElementById('queue-list');
+  var controls = document.getElementById('queue-controls');
   var announcer = document.getElementById('queue-announcer');
 
   var LEVELS = ['introduced', 'developed', 'mastered'];
 
   var items = [];
-  var index = 0;
-  var totalRecords = 0;
-  var currentSet = null;
+  var conceptFilter = '';
+  var onlyPending = false;
 
   // record id -> true while that record's reject reason field is open.
   var rejecting = {};
@@ -29,42 +41,131 @@
   // record id -> a validation message for that record's reason field.
   var reasonErrors = {};
 
-  /* render() replaces the whole standard's markup, which would otherwise
-   * drop keyboard focus back to <body> every time. These two flags tell the
-   * next render where focus belongs afterward, so nobody using a keyboard
-   * ever loses their place. Only one is ever set at a time — moving between
-   * standards and acting on a record never happen in the same click. */
-  var focusStandardOnRender = false;
-  var focusRecordOnRender = null;
+  // standard id -> the <li> currently on screen for it.
+  var cardNodes = {};
 
-  function setDecision(recordId, decision) {
-    D.set(recordId, decision);
-    render();
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) { node.className = className; }
+    if (text !== undefined && text !== null) { node.textContent = text; }
+    return node;
   }
 
   function say(message) {
-    mount.textContent = message;
+    mount.innerHTML = '';
+    mount.appendChild(el('p', 'wb-note', message));
   }
 
-  function boundaryList(heading, entries) {
-    var wrap = document.createElement('div');
+  function announce(message) {
+    announcer.textContent = message;
+  }
 
-    var h = document.createElement('p');
-    h.textContent = heading;
-    wrap.appendChild(h);
+  // ---- Filtering --------------------------------------------------------
+
+  function recordsOf(item) {
+    return item.records || [];
+  }
+
+  function itemHasPending(item) {
+    return recordsOf(item).some(function (record) {
+      return !D.get(record.id);
+    });
+  }
+
+  function visibleItems() {
+    return items.filter(function (item) {
+      if (conceptFilter && item.standard.concept !== conceptFilter) {
+        return false;
+      }
+      if (onlyPending && !itemHasPending(item)) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  function concepts() {
+    var seen = {};
+    items.forEach(function (item) {
+      if (item.standard.concept) { seen[item.standard.concept] = true; }
+    });
+    return Object.keys(seen).sort();
+  }
+
+  /* The filter row. Built here rather than written into index.html because
+   * the concept list comes from the run: a set with no Networks standards
+   * should not offer to filter by Networks. */
+  function renderControls() {
+    controls.innerHTML = '';
+
+    var conceptField = el('p', 'field');
+    var conceptLabel = el('label', null, 'Show');
+    conceptLabel.setAttribute('for', 'concept-filter');
+    conceptField.appendChild(conceptLabel);
+
+    var select = document.createElement('select');
+    select.id = 'concept-filter';
+
+    var all = document.createElement('option');
+    all.value = '';
+    all.textContent = 'All concepts';
+    select.appendChild(all);
+
+    concepts().forEach(function (concept) {
+      var option = document.createElement('option');
+      option.value = concept;
+      option.textContent = concept;
+      select.appendChild(option);
+    });
+
+    select.value = conceptFilter;
+    select.addEventListener('change', function () {
+      conceptFilter = select.value;
+      renderList();
+      announceCount();
+    });
+    conceptField.appendChild(select);
+    controls.appendChild(conceptField);
+
+    var checkField = el('p', 'check');
+    var checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'only-pending';
+    checkbox.checked = onlyPending;
+    checkbox.addEventListener('change', function () {
+      onlyPending = checkbox.checked;
+      renderList();
+      announceCount();
+    });
+    checkField.appendChild(checkbox);
+
+    var checkLabel = el('label', null, 'Only standards still needing a decision');
+    checkLabel.setAttribute('for', 'only-pending');
+    checkField.appendChild(checkLabel);
+    controls.appendChild(checkField);
+
+    controls.hidden = false;
+  }
+
+  function announceCount() {
+    var shown = visibleItems().length;
+    announce(shown + ' of ' + items.length + ' standards shown.');
+  }
+
+  // ---- Pieces of a card -------------------------------------------------
+
+  function boundaryList(heading, entries) {
+    var wrap = el('div', 'wb-boundary');
+    wrap.appendChild(el('p', 'wb-boundary-head', heading));
 
     if (!entries || !entries.length) {
-      var none = document.createElement('p');
-      none.textContent = 'None written yet.';
-      wrap.appendChild(none);
+      wrap.appendChild(el('p', null, 'None written yet.'));
       return wrap;
     }
 
-    var ul = document.createElement('ul');
+    var ul = el('ul', 'wb-boundary-list');
     entries.forEach(function (entry) {
-      var li = document.createElement('li');
-      li.textContent = entry;
-      ul.appendChild(li);
+      ul.appendChild(el('li', null, entry));
     });
     wrap.appendChild(ul);
 
@@ -77,9 +178,9 @@
    * here would let a partial activity count as full coverage. */
   function levelSelectFor(record, decision) {
     if (record.is_choice_level) {
-      var fixed = document.createElement('span');
+      var fixed = el('span', 'wb-level-fixed',
+        'introduced (capped — this evidence is optional)');
       fixed.id = 'level-' + record.id;
-      fixed.textContent = 'introduced (capped — this evidence is optional)';
       return fixed;
     }
 
@@ -97,13 +198,47 @@
     return select;
   }
 
-  function reasonFieldFor(record, getLevel) {
-    var wrap = document.createElement('div');
+  /* Warnings, in the words the data gives them — never the internal "kind"
+   * (e.g. "weak_match"). The label is what a reviewer should read; the kind
+   * is just how the system files it.
+   *
+   * A warning is a pill so it is visible at a glance, and its text carries
+   * the meaning on its own: colour alone would not reach a reviewer who
+   * cannot distinguish these two, and there are only ever two. */
+  function warningPills(flags) {
+    var wrap = el('div', 'wb-pills');
+
+    (flags || []).forEach(function (flag) {
+      var pill = el('span', 'wb-pill wb-pill-warn', flag.label);
+      if (flag.detail) { pill.title = flag.detail; }
+      wrap.appendChild(pill);
+    });
+
+    return wrap;
+  }
+
+  /* The pill above already says which warning this is, so a single detail
+   * line does not repeat the label. With two warnings on one record it has
+   * to, or there is no telling which detail belongs to which pill. */
+  function warningDetails(flags) {
+    var wrap = el('div', 'wb-warning-detail');
+    var withDetail = (flags || []).filter(function (flag) { return flag.detail; });
+
+    withDetail.forEach(function (flag) {
+      wrap.appendChild(el('p', null, withDetail.length > 1
+        ? flag.label + ' — ' + flag.detail
+        : flag.detail));
+    });
+
+    return wrap;
+  }
+
+  function reasonFieldFor(record, standard, getLevel) {
+    var wrap = el('div', 'wb-reason');
 
     var reasonId = 'reason-' + record.id;
-    var label = document.createElement('label');
+    var label = el('label', null, 'Reason for rejecting');
     label.setAttribute('for', reasonId);
-    label.textContent = 'Reason for rejecting';
     wrap.appendChild(label);
 
     var input = document.createElement('input');
@@ -113,142 +248,122 @@
 
     if (reasonErrors[record.id]) {
       var errorId = 'reason-error-' + record.id;
-      var error = document.createElement('p');
+      var error = el('p', 'wb-error', reasonErrors[record.id]);
       error.id = errorId;
-      error.textContent = reasonErrors[record.id];
       wrap.appendChild(error);
       input.setAttribute('aria-describedby', errorId);
       input.setAttribute('aria-invalid', 'true');
     }
 
-    var confirmBtn = document.createElement('button');
+    var buttons = el('div', 'wb-record-actions');
+
+    var confirmBtn = el('button', null, 'Confirm rejection');
     confirmBtn.type = 'button';
-    confirmBtn.textContent = 'Confirm rejection';
     confirmBtn.addEventListener('click', function () {
       var reason = input.value.trim();
-      focusRecordOnRender = record.id;
       if (!reason) {
         reasonErrors[record.id] = 'A reason is required.';
-        render();
+        replaceCard(standard.id, record.id);
         return;
       }
       delete reasonErrors[record.id];
       delete rejecting[record.id];
-      setDecision(record.id, {
-        record_id: record.id,
+      decide(standard, record, {
         review_status: 'rejected',
         level: null,
         chosen_level: getLevel(),
         reason: reason
       });
     });
-    wrap.appendChild(confirmBtn);
+    buttons.appendChild(confirmBtn);
 
-    var cancelBtn = document.createElement('button');
+    var cancelBtn = el('button', 'quiet', 'Cancel');
     cancelBtn.type = 'button';
-    cancelBtn.textContent = 'Cancel';
     cancelBtn.addEventListener('click', function () {
       delete rejecting[record.id];
       delete reasonErrors[record.id];
-      focusRecordOnRender = record.id;
-      render();
+      replaceCard(standard.id, record.id);
     });
-    wrap.appendChild(cancelBtn);
+    buttons.appendChild(cancelBtn);
 
+    wrap.appendChild(buttons);
     return wrap;
   }
 
-  /* Warnings, in the words the data gives them — never the internal "kind"
-   * (e.g. "weak_match"). The label is what a reviewer should read; the kind
-   * is just how the system files it. */
-  function warningList(flags) {
-    var wrap = document.createElement('div');
+  /* Writes the decision, then repaints just this card.
+   *
+   * standard_identifier and lesson_name go in alongside the ids because the
+   * CSV a reviewer hands to somebody else has to be readable without this
+   * tool open. The service only ever needs record_id. */
+  function decide(standard, record, decision) {
+    decision.record_id = record.id;
+    decision.standard_identifier = standard.identifier;
+    decision.lesson_name = record.lesson.lesson_name;
+    D.set(record.id, decision);
 
-    if (!flags || !flags.length) {
-      return wrap;
+    replaceCard(standard.id, record.id);
+
+    if (window.RunSummary && window.RunSummary.refresh) {
+      window.RunSummary.refresh();
     }
 
-    var h = document.createElement('p');
-    h.textContent = 'Warnings';
-    wrap.appendChild(h);
-
-    var ul = document.createElement('ul');
-    flags.forEach(function (flag) {
-      var li = document.createElement('li');
-      li.textContent = flag.detail ? flag.label + ' — ' + flag.detail : flag.label;
-      ul.appendChild(li);
-    });
-    wrap.appendChild(ul);
-
-    return wrap;
+    announce(standard.identifier + ', ' + record.lesson.lesson_name + ': ' +
+      (decision.review_status === 'accepted'
+        ? 'accepted at ' + decision.chosen_level + '.'
+        : 'rejected.') +
+      ' ' + D.count() + ' of ' + totalRecords() + ' lessons reviewed.');
   }
 
-  /* Says what is true about this set's boundary notes. It used to say that
-   * nothing could reach a district until they were checked; that rule is gone
-   * (see contract/REVIEW-DESIGN.md) and the copy no longer claims it. */
-  function lockBanner() {
-    if (!currentSet || currentSet.all_boundaries_checked) {
-      return null;
-    }
-
-    var banner = document.createElement('div');
-    banner.setAttribute('role', 'alert');
-
-    var h = document.createElement('p');
-    h.textContent = 'Not checked by a person yet.';
-    banner.appendChild(h);
-
-    var p = document.createElement('p');
-    p.textContent = 'Nobody has reviewed the boundary notes for this standards ' +
-      'set. They are drafts, and a reviewer checks one when an alignment ' +
-      'turns on it.';
-    banner.appendChild(p);
-
-    return banner;
+  function totalRecords() {
+    return items.reduce(function (sum, item) {
+      return sum + recordsOf(item).length;
+    }, 0);
   }
 
-  function evidenceItem(record) {
+  function evidenceItem(standard, record) {
     var lesson = record.lesson;
     var decision = D.get(record.id);
-    var li = document.createElement('li');
+    var li = el('li', 'wb-record');
 
     var unitLabel = lesson.displayed_number
       ? 'Unit ' + lesson.displayed_number + ' — ' + lesson.unit_name
       : lesson.unit_name;
 
-    var title = document.createElement('p');
-    title.textContent = lesson.lesson_name + ' (' + unitLabel + ', lesson ' +
-      lesson.lesson_token + ') — proposed at ' + record.level;
-    li.appendChild(title);
+    var head = el('div', 'wb-record-head');
+    head.appendChild(el('span', 'wb-pill wb-pill-lesson', lesson.lesson_token));
+    head.appendChild(el('span', 'wb-record-title',
+      lesson.lesson_name + ' (' + unitLabel + ') — proposed at ' + record.level));
+    li.appendChild(head);
 
     /* Stale is the most important thing on the screen: this was already
      * accepted, and the lesson has since changed underneath it. It must say
      * that plainly, regardless of whatever fresh decision gets made below. */
     if (record.review_status === 'stale') {
-      var stale = document.createElement('p');
-      stale.textContent = 'This was accepted before. The lesson has changed since — it needs review again.';
-      li.appendChild(stale);
+      /* Deliberately not role="alert". These cards are on the page from the
+       * moment it loads, and an alert role fires the instant its node is
+       * inserted - so a queue with six stale records would shout six times
+       * over each other before the reviewer had read anything. The words
+       * carry it instead, and they lead with what to do. */
+      li.appendChild(el('p', 'wb-stale',
+        'Needs review again: this was accepted before, and the lesson has ' +
+        'changed since.'));
     }
 
-    var objective = document.createElement('p');
-    objective.textContent = lesson.has_objectives && lesson.objectives && lesson.objectives.length
-      ? 'Objective: ' + lesson.objectives.join(' ')
-      : 'No stated objective.';
-    li.appendChild(objective);
+    li.appendChild(warningPills(record.flags));
+    li.appendChild(warningDetails(record.flags));
 
-    var evidence = document.createElement('p');
-    evidence.textContent = record.evidence;
-    li.appendChild(evidence);
+    li.appendChild(el('p', 'wb-objective',
+      lesson.has_objectives && lesson.objectives && lesson.objectives.length
+        ? 'Objective: ' + lesson.objectives.join(' ')
+        : 'No stated objective.'));
+
+    li.appendChild(el('p', 'wb-proof', 'Proof: ' + record.evidence));
 
     if (record.note) {
-      var note = document.createElement('p');
-      note.textContent = 'Note: ' + record.note;
-      li.appendChild(note);
+      li.appendChild(el('p', 'wb-record-note', 'Note: ' + record.note));
     }
 
-    li.appendChild(warningList(record.flags));
-
-    var levelLabel = document.createElement(record.is_choice_level ? 'p' : 'label');
+    var levelLabel = el(record.is_choice_level ? 'p' : 'label', 'wb-level');
     if (!record.is_choice_level) {
       levelLabel.setAttribute('for', 'level-' + record.id);
     }
@@ -263,46 +378,51 @@
     }
 
     if (record.is_choice_level) {
-      var choiceNote = document.createElement('p');
-      choiceNote.textContent = 'Optional evidence: only ' + record.choice_option +
-        ' does this. Cannot count as full coverage.';
-      li.appendChild(choiceNote);
+      li.appendChild(el('p', 'wb-record-note',
+        'Optional evidence: only ' + record.choice_option +
+        ' does this. Cannot count as full coverage.'));
     }
 
     if (rejecting[record.id]) {
-      li.appendChild(reasonFieldFor(record, currentLevel));
+      li.appendChild(reasonFieldFor(record, standard, currentLevel));
       return li;
     }
 
-    var acceptBtn = document.createElement('button');
+    var actions = el('div', 'wb-record-actions');
+
+    /* Every card carries an Accept and a Reject, so "Accept" on its own is
+     * ambiguous to anyone moving through the page by button. The visible word
+     * stays short; the accessible name says which lesson it acts on. */
+    var acceptBtn = el('button', null, 'Accept');
     acceptBtn.id = 'accept-' + record.id;
     acceptBtn.type = 'button';
-    acceptBtn.textContent = 'Accept';
+    acceptBtn.setAttribute('aria-label',
+      'Accept ' + lesson.lesson_name + ' for ' + standard.identifier);
     acceptBtn.addEventListener('click', function () {
       var chosen = currentLevel();
-      focusRecordOnRender = record.id;
-      setDecision(record.id, {
-        record_id: record.id,
+      decide(standard, record, {
         review_status: 'accepted',
         level: chosen === record.level ? null : chosen,
         chosen_level: chosen,
         reason: null
       });
     });
-    li.appendChild(acceptBtn);
+    actions.appendChild(acceptBtn);
 
-    var rejectBtn = document.createElement('button');
+    var rejectBtn = el('button', 'quiet', 'Reject');
     rejectBtn.id = 'reject-' + record.id;
     rejectBtn.type = 'button';
-    rejectBtn.textContent = 'Reject';
+    rejectBtn.setAttribute('aria-label',
+      'Reject ' + lesson.lesson_name + ' for ' + standard.identifier);
     rejectBtn.addEventListener('click', function () {
       rejecting[record.id] = true;
-      focusRecordOnRender = record.id;
-      render();
+      replaceCard(standard.id, record.id);
     });
-    li.appendChild(rejectBtn);
+    actions.appendChild(rejectBtn);
 
-    var status = document.createElement('p');
+    li.appendChild(actions);
+
+    var status = el('p', 'wb-record-status');
     status.id = 'status-' + record.id;
     status.tabIndex = -1;
     if (decision && decision.review_status === 'accepted') {
@@ -338,174 +458,182 @@
   }
 
   function evidenceList(standard, outcome, records) {
-    var wrap = document.createElement('div');
-
-    var h = document.createElement('p');
-    h.textContent = 'Proposed evidence';
-    wrap.appendChild(h);
+    var wrap = el('div', 'wb-evidence');
+    wrap.appendChild(el('p', 'wb-evidence-head', 'Proposed evidence'));
 
     if (!records || !records.length) {
-      var label = document.createElement('p');
-      label.textContent = noEvidenceLabel(standard, outcome);
-      wrap.appendChild(label);
-
-      var why = document.createElement('p');
-      why.textContent = (outcome && outcome.rationale) || 'No evidence proposed.';
-      wrap.appendChild(why);
-
+      var empty = el('div', 'wb-no-evidence');
+      empty.appendChild(el('p', 'wb-no-evidence-label',
+        noEvidenceLabel(standard, outcome)));
+      empty.appendChild(el('p', null,
+        (outcome && outcome.rationale) || 'No evidence proposed.'));
+      wrap.appendChild(empty);
       return wrap;
     }
 
-    var ul = document.createElement('ul');
+    var ul = el('ul', 'wb-record-list');
     records.forEach(function (record) {
-      ul.appendChild(evidenceItem(record));
+      ul.appendChild(evidenceItem(standard, record));
     });
     wrap.appendChild(ul);
 
     return wrap;
   }
 
-  function render() {
-    var item = items[index];
+  function standardCard(item, position, total) {
     var standard = item.standard;
+    var li = el('li', 'wb-card');
+    li.id = 'card-' + standard.id;
 
-    mount.innerHTML = '';
+    var head = el('div', 'wb-card-head');
 
-    var banner = lockBanner();
-    if (banner) {
-      mount.appendChild(banner);
-    }
-
-    var progress = document.createElement('p');
-    progress.textContent = 'Decisions: ' + D.count() + ' of ' + totalRecords + ' lessons reviewed.';
-    mount.appendChild(progress);
-
-    var position = document.createElement('p');
-    position.textContent = 'Standard ' + (index + 1) + ' of ' + items.length;
-    mount.appendChild(position);
-
-    var heading = document.createElement('h3');
-    heading.id = 'standard-heading';
+    var heading = el('h4', 'wb-ident', standard.identifier);
+    heading.id = 'standard-' + standard.id;
     heading.tabIndex = -1;
-    heading.textContent = standard.identifier;
-    mount.appendChild(heading);
+    head.appendChild(heading);
 
-    var statement = document.createElement('p');
-    statement.textContent = standard.statement;
-    mount.appendChild(statement);
-
-    mount.appendChild(boundaryList('Counts as teaching it', standard.boundary_includes));
-    mount.appendChild(boundaryList('Does not count', standard.boundary_excludes));
-    mount.appendChild(evidenceList(standard, item.outcome, item.records));
-
-    var nav = document.createElement('p');
-
-    var prev = document.createElement('button');
-    prev.type = 'button';
-    prev.textContent = 'Back';
-    prev.disabled = index === 0;
-    prev.addEventListener('click', function () {
-      index -= 1;
-      focusStandardOnRender = true;
-      render();
-    });
-    nav.appendChild(prev);
-
-    var next = document.createElement('button');
-    next.type = 'button';
-    next.textContent = 'Next';
-    next.disabled = index === items.length - 1;
-    next.addEventListener('click', function () {
-      index += 1;
-      focusStandardOnRender = true;
-      render();
-    });
-    nav.appendChild(next);
-
-    mount.appendChild(nav);
-
-    var downloadBtn = document.createElement('button');
-    downloadBtn.type = 'button';
-    downloadBtn.textContent = 'Download decisions';
-    downloadBtn.addEventListener('click', D.save);
-    mount.appendChild(downloadBtn);
-
-    // Still tied to the boundary notes, which is no longer the real rule -
-    // publishing needs an approved run. Left as is deliberately: it errs
-    // toward showing less, and rewiring it is part of the rebuild.
-    var allChecked = !!(currentSet && currentSet.all_boundaries_checked);
-
-    var publishBtn = document.createElement('button');
-    publishBtn.type = 'button';
-    publishBtn.textContent = 'Publish to district';
-    publishBtn.disabled = !allChecked;
-    mount.appendChild(publishBtn);
-
-    if (!allChecked) {
-      var why = document.createElement('p');
-      why.textContent = 'Publishing is off in this prototype until the ' +
-        'boundary notes have been checked.';
-      mount.appendChild(why);
+    if (standard.concept) {
+      head.appendChild(el('span', 'wb-pill wb-pill-concept', standard.concept));
+    }
+    if (!itemHasPending(item) && recordsOf(item).length) {
+      head.appendChild(el('span', 'wb-pill wb-pill-done', 'Reviewed'));
     }
 
-    if (focusStandardOnRender) {
-      focusStandardOnRender = false;
-      heading.focus();
-      announcer.textContent = 'Standard ' + (index + 1) + ' of ' + items.length +
-        ': ' + standard.identifier + '. ' + standard.statement;
-    } else if (focusRecordOnRender !== null) {
-      var recordId = focusRecordOnRender;
-      focusRecordOnRender = null;
-      var target = rejecting[recordId]
-        ? document.getElementById('reason-' + recordId)
-        : (D.get(recordId)
-          ? document.getElementById('status-' + recordId)
-          : document.getElementById('accept-' + recordId));
-      if (target) {
-        target.focus();
-      }
+    head.appendChild(el('span', 'wb-position', position + ' of ' + total));
+    li.appendChild(head);
+
+    li.appendChild(el('p', 'wb-statement', standard.statement));
+
+    /* <details> rather than a panel that is always open: the boundary notes
+     * matter when a match looks wrong, and are noise the rest of the time.
+     * A real <details> is keyboard-operable for free. */
+    var boundaries = document.createElement('details');
+    boundaries.className = 'wb-boundaries';
+    var summary = document.createElement('summary');
+    summary.textContent = 'What counts as teaching this standard';
+    boundaries.appendChild(summary);
+    boundaries.appendChild(boundaryList('Counts as teaching it', standard.boundary_includes));
+    boundaries.appendChild(boundaryList('Does not count', standard.boundary_excludes));
+
+    if (standard.boundary_provenance === 'drafted') {
+      boundaries.appendChild(el('p', 'wb-drafted-note',
+        'These notes are a draft nobody has checked. If a match below was ' +
+        'rejected against them, the notes may be what is wrong, not the lesson.'));
     }
+    li.appendChild(boundaries);
+
+    li.appendChild(evidenceList(standard, item.outcome, item.records));
+
+    cardNodes[standard.id] = li;
+    return li;
   }
 
-  function start() {
-    if (S.isFilePath()) {
-      say('This page needs to be served before it can read any data.');
+  /* Repaints one card in place and puts focus back inside it.
+   *
+   * focusRecordId names the record the reviewer was acting on. Where focus
+   * lands depends on what the card now shows: the reason box if rejection is
+   * open, the decision line if a decision was just made, the Accept button if
+   * the decision was cancelled. */
+  function replaceCard(standardId, focusRecordId) {
+    var old = cardNodes[standardId];
+    if (!old || !old.parentNode) { return; }
+
+    var shown = visibleItems();
+    var position = 0;
+    var item = null;
+
+    shown.forEach(function (candidate, offset) {
+      if (candidate.standard.id === standardId) {
+        item = candidate;
+        position = offset + 1;
+      }
+    });
+
+    /* The card may have just been filtered out of the list by its own
+     * decision — "only standards still needing a decision" is on and this was
+     * the last pending record. Drop it and move focus somewhere real rather
+     * than leaving it on a node that is no longer in the page. */
+    if (!item) {
+      var parent = old.parentNode;
+      old.parentNode.removeChild(old);
+      delete cardNodes[standardId];
+      renumber();
+      var firstHeading = parent.querySelector('.wb-ident');
+      if (firstHeading) {
+        firstHeading.focus();
+      } else {
+        renderList();
+      }
       return;
     }
 
-    say('Loading the review queue…');
+    var fresh = standardCard(item, position, shown.length);
+    old.parentNode.replaceChild(fresh, old);
 
-    Promise.all([S.load('review-queue'), S.load('run'), S.load('standards-sets')])
-      .then(function (results) {
-        var queue = results[0];
-        var run = results[1];
-        var sets = results[2].items || [];
-
-        items = queue.items || [];
-        index = 0;
-        totalRecords = items.reduce(function (sum, item) {
-          return sum + (item.records ? item.records.length : 0);
-        }, 0);
-
-        currentSet = sets.filter(function (set) {
-          return set.id === run.set_id;
-        })[0] || null;
-
-        if (!items.length) {
-          say('The queue is empty.');
-          return;
-        }
-
-        render();
-      })
-      .catch(function (error) {
-        say('The review queue could not be read. ' + error.message);
-      });
+    var target = rejecting[focusRecordId]
+      ? document.getElementById('reason-' + focusRecordId)
+      : (D.get(focusRecordId)
+        ? document.getElementById('status-' + focusRecordId)
+        : document.getElementById('accept-' + focusRecordId));
+    if (target) { target.focus(); }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start);
-  } else {
-    start();
+  /* Positions are "3 of 12" against what is on screen, so removing a card
+   * has to renumber the ones left rather than leave a gap in the count. */
+  function renumber() {
+    var positions = mount.querySelectorAll('.wb-position');
+    for (var i = 0; i < positions.length; i += 1) {
+      positions[i].textContent = (i + 1) + ' of ' + positions.length;
+    }
   }
+
+  function renderList() {
+    var shown = visibleItems();
+    cardNodes = {};
+    mount.innerHTML = '';
+
+    if (!shown.length) {
+      mount.appendChild(el('p', 'wb-note',
+        items.length
+          ? 'Nothing matches this filter. Every standard here has been reviewed, ' +
+            'or belongs to another concept.'
+          : 'The queue is empty.'));
+      return;
+    }
+
+    var ul = el('ul', 'wb-card-list');
+    shown.forEach(function (item, offset) {
+      ul.appendChild(standardCard(item, offset + 1, shown.length));
+    });
+    mount.appendChild(ul);
+  }
+
+  function render(ctx) {
+    items = ctx.queue.items || [];
+
+    if (!items.length) {
+      controls.hidden = true;
+      say('The queue is empty. Nothing from this run is waiting on a person.');
+      return;
+    }
+
+    renderControls();
+    renderList();
+  }
+
+  function needsServing() {
+    controls.hidden = true;
+    say('This page needs to be served before it can read the review queue.');
+  }
+
+  function showError(error) {
+    controls.hidden = true;
+    say('The review queue could not be read. ' + error.message);
+  }
+
+  return {
+    render: render,
+    needsServing: needsServing,
+    showError: showError
+  };
 })();
