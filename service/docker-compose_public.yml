@@ -7,9 +7,9 @@
 #
 #   docker compose -f docker-compose_public.yml up -d
 #
-# The host needs two files and nothing else: this one and your dump. There is
-# no repository checkout, because the image is built from GitHub and a
-# pg_dump carries its own schema.
+# The host needs two files and nothing else: this one and your dump. Nothing is
+# built there - the image is pulled from GitHub's registry, and a pg_dump
+# carries its own schema.
 #
 # ---------------------------------------------------------------------------
 # Standing it up
@@ -20,26 +20,34 @@
 #
 #      POSTGRES_PASSWORD=<something long>
 #
-# 2. Bring it up. The database starts empty - that is expected.
+# 2. Make the image reachable. It is published to ghcr.io by the workflow in
+#    .github/workflows/publish-image.yml, and a new package is private, so do
+#    ONE of these once:
 #
+#      - set the package public in the repository's Packages settings, or
+#      - on the host: docker login ghcr.io -u <you>  (a token with read:packages)
+#
+# 3. Bring it up. The database starts empty - that is expected.
+#
+#      docker compose -f docker-compose_public.yml pull
 #      docker compose -f docker-compose_public.yml up -d
 #
-# 3. On your laptop, dump what you have:
+# 4. On your laptop, dump what you have:
 #
 #      docker compose -f service/docker-compose.yml exec -T db \
 #        pg_dump -U standards -d standards --clean --if-exists > dump.sql
 #
-# 4. Copy dump.sql to the host and load it:
+# 5. Copy dump.sql to the host and load it:
 #
 #      docker compose -f docker-compose_public.yml exec -T db \
 #        psql -U standards -d standards < dump.sql
 #
-# 5. Put it behind Traefik. Copy traefik/standards.yml into the directory your
+# 6. Put it behind Traefik. Copy traefik/standards.yml into the directory your
 #    file provider watches, set the Host rule, and choose a middleware. The
 #    api joins Traefik's network and publishes nothing, so that route is the
 #    only way to reach it.
 #
-# 6. Point the interface at it. In tools/standards-mapper/loader.js, the SOURCE
+# 7. Point the interface at it. In tools/standards-mapper/loader.js, the SOURCE
 #    block becomes:
 #
 #      mode: 'api',
@@ -106,12 +114,22 @@ services:
     restart: unless-stopped
 
   api:
-    build:
-      # Built from GitHub, so the host needs no checkout and cannot quietly
-      # ship someone's half-finished working tree. Pin the ref to a commit
-      # rather than a branch when you care which version is running.
-      context: https://github.com/sammorris-code/codeai-sprint-scaffold.git#main
-      dockerfile: service/Dockerfile
+    # A finished image, pulled. Nothing is built on the host.
+    #
+    # This began as a build from a git URL, on the theory that it saved the
+    # host a checkout. It does not work: a NAS builder has no `git` binary, so
+    # it cannot fetch a git context, and it says so in a wall of BuildKit text
+    # that never names the cause. Pulling is better anyway - no toolchain on
+    # the host, nothing to clone, and the same bytes everywhere.
+    #
+    # `main` follows the default branch. Pin an exact commit when it matters
+    # which version is running: IMAGE_TAG=sha-1a2b3c4 in .env.
+    image: ghcr.io/sammorris-code/codeai-sprint-scaffold:${IMAGE_TAG:-main}
+    # Published by .github/workflows/publish-image.yml. The package is private
+    # until you make it public in the repository's Packages settings; until
+    # then the host needs `docker login ghcr.io`.
+    #
+    # To update: docker compose -f docker-compose_public.yml pull && ... up -d
     environment:
       DATABASE_URL: postgresql://standards:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/standards
       # ANTHROPIC_API_KEY is absent on purpose. See the note above.
@@ -140,9 +158,8 @@ services:
   # It exists for a fresh host you want something to look at on.
   seed:
     profiles: ["demo"]
-    build:
-      context: https://github.com/sammorris-code/codeai-sprint-scaffold.git#main
-      dockerfile: service/Dockerfile
+    # Same image, different command.
+    image: ghcr.io/sammorris-code/codeai-sprint-scaffold:${IMAGE_TAG:-main}
     environment:
       DATABASE_URL: postgresql://standards:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/standards
     command: ["python", "-m", "service.load_fixtures"]
