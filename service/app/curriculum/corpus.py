@@ -469,11 +469,16 @@ def distil_summary(records):
             1 for r in records if r["is_alternate_progression"]),
         "lessons_with_open_questions": sum(
             1 for r in records if r["open_questions"]),
-        "code_levels_student_written": sum(
-            r["authorship"]["code_levels_student_written"] for r in records),
-        "code_levels_ai_written": sum(
-            r["authorship"]["code_levels_ai_written_at_student_direction"]
-            for r in records),
+        "code_student_authored": sum(
+            r["authorship"]["student_authored"] for r in records),
+        "code_student_specified": sum(
+            r["authorship"]["student_specified"] for r in records),
+        "code_outcome_prompted": sum(
+            r["authorship"]["outcome_prompted"] for r in records),
+        "code_counts_as_writing": sum(
+            r["authorship"]["counts_as_writing_under_policy"] for r in records),
+        "code_borderline": sum(
+            len(r["authorship"]["borderline"]) for r in records),
     }
 
 

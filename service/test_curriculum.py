@@ -540,6 +540,62 @@ def main():
               and "with_a_student_action" in manifest["distilled"],
               f"{manifest.get('distilled')}")
 
+        print("\nWho writes the code")
+        from service.app.curriculum.distil import (                # noqa: E402
+            classify_authorship, AUTHORSHIP_POLICY)
+
+        # The wording below is taken from real AIF levels, so these are the
+        # cases the policy was written to separate rather than invented ones.
+        typed, _, _ = classify_authorship(
+            "Write a function that returns the total price.")
+        check("typing the code is student_authored", typed == "student_authored",
+              typed)
+
+        spec, spec_checked, spec_edge = classify_authorship(
+            "Import your flowchart from your Backpack into your project, then "
+            "add it as context to the AI. Ask the AI to write the code to "
+            "implement the logic. Test each row of your table.")
+        check("a flowchart the student made is student_specified",
+              spec == "student_specified", spec)
+        check("and the check against it is noticed", spec_checked is True)
+        check("it is not treated as doubtful", spec_edge is False)
+
+        frame, _, _ = classify_authorship(
+            'Complete: "When the user clicks [button name], the page should '
+            '[exact response]." Reference this when you prompt AI. Ask AI to '
+            "generate the code so clicking the Monday button displays your drop.")
+        check("a sentence frame the student completed is student_specified",
+              frame == "student_specified", frame)
+
+        plan, _, _ = classify_authorship(
+            "Use AI to add a parameter so the display shows the correct gig. "
+            "Plan in `spec.md`, then prompt the AI with your plan to update "
+            "the function.")
+        check("a plan written in a spec file is student_specified",
+              plan == "student_specified", plan)
+
+        outcome, _, _ = classify_authorship(
+            'Prompt the AI to show the message "Button One was clicked!" when '
+            "Button One is clicked.")
+        check("asking for an outcome only is outcome_prompted",
+              outcome == "outcome_prompted", outcome)
+
+        mixed, _, mixed_edge = classify_authorship(
+            "Ask AI Tutor to rewrite it as a named arrow function. Then edit "
+            "the code yourself to fix the parameter.")
+        check("the model writing and the student editing is flagged borderline",
+              mixed_edge is True, f"{mixed} {mixed_edge}")
+
+        check("the policy is carried with the counts, not baked into them",
+              d_one["authorship"]["policy"] == AUTHORSHIP_POLICY
+              and set(AUTHORSHIP_POLICY) == {
+                  "student_authored", "student_specified", "outcome_prompted"},
+              f"{d_one['authorship'].get('policy')}")
+        check("what counts as writing is derived from the policy",
+              d_one["authorship"]["counts_as_writing_under_policy"] ==
+              d_one["authorship"]["student_authored"]
+              + d_one["authorship"]["student_specified"])
+
         print("\nThe corpus on disk")
         check("manifest.csv was written", (out_dir / "manifest.csv").exists())
         check("warnings.json was written", (out_dir / "warnings.json").exists())
