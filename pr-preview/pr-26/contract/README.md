@@ -15,6 +15,9 @@ Nobody waits for anybody. All three read this folder and meet at the end.
 reverses the publish gate described in `tables.md`. Read it before building
 anything that reviews a boundary.
 
+`BRIEF-FOR-THE-REVIEW-TOOL.md` is the same change written for whoever picks the
+review tool back up, and carries a prompt they can hand to Claude Code.
+
 **This folder holds no real data.** Every fixture is invented. See *Fixtures*.
 
 ---

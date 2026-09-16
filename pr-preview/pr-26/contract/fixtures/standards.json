@@ -398,6 +398,6 @@
     "14 rows. One is an umbrella heading (DEMO-1.B.0) and is never counted on its own, so 13 are countable.",
     "Two rows sit in the Networks concept, which the demo run puts out of scope. 11 are in scope.",
     "DEMO-4.A.1 is a program requirement. No curriculum can meet it. It gets its own bucket and is not a gap.",
-    "Every boundary here is 'drafted'. The set is therefore not publishable until a person checks them."
+    "Every boundary here is 'drafted'. Nobody has checked them, which is recorded rather than blocking: publishing needs an approved run."
   ]
 }
