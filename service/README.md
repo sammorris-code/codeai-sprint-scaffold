@@ -183,6 +183,15 @@ reasoned from the Compose documentation rather than tested.
 specialty ones. It is the anchor every other framework's boundaries are drafted
 against, and the only source of identifiers `nearest_csta` may contain.
 
+It is also what the analog gate checks against. Asking for an identifier gets an
+assertion, and a first real run returned one for 80% of standards against a
+prompt saying most have none. So the drafter now quotes the CSTA span it
+adapted, and `ingestion/analogs.py` checks that quote is really in that standard
+and really shows up in the boundary. Failures are dropped and counted, and the
+count comes back in the ingest response under `nearest_csta.rejected` — a gate
+set too strict would otherwise be indistinguishable from a drafter that stopped
+stretching.
+
 Only the standards whose grade band **overlaps** the document being ingested are
 sent. Band labels do not agree between frameworks — CSTA says `9-12`, Oklahoma
 says `9-10` and `11-12` — so they are compared by the grades they cover, not as

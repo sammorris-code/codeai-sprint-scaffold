@@ -19,7 +19,7 @@ import anthropic
 import pydantic
 from pydantic import BaseModel, Field
 
-from . import csta
+from . import analogs, csta
 
 MODEL = "claude-opus-5"
 
@@ -60,19 +60,30 @@ Rules, in order of importance:
    are never sufficient evidence on their own, so do not write them as though
    they were.
 
-7. nearest_csta holds between 0 and 3 identifiers, taken ONLY from the CSTA
-   reference given to you below. Never write an identifier that is not in that
-   list.
+7. `analogs` is a record of work you did, not a search you performed. Write
+   the boundary first. Then, for each CSTA standard whose wording you actually
+   leaned on while writing it, record the id and quote the span you adapted.
 
-   The purpose of a nearest analog is to give you boundary language worth
-   adapting. So the test is simply: WOULD YOU ACTUALLY ADAPT THIS STANDARD'S
-   BOUNDARY WORDING for the statement in front of you? If you would not, it is
-   not a nearest analog, and the answer is an empty list.
+   If you wrote the boundary without reaching for the reference, `analogs` is
+   empty. That is the usual answer and it is a complete one. Do not go back
+   afterwards and look for something to put there - a list assembled that way
+   is a crosswalk, which this field must never be. It is a drafting aid and an
+   audit trail.
 
-   Most state standards have no close CSTA analog. An empty list is the common
-   and expected answer, not a failure to find something. Returning a loose
-   match on every standard turns this field into a crosswalk, which is exactly
-   what it must never be: it is a drafting aid and an audit trail.
+   Each `adapted` span is checked by code, not taken on trust:
+
+   - It must appear word for word in the CSTA standard you credit it to. Quote
+     from the reference below; do not paraphrase it and do not write it from
+     memory. A span that is not in that standard is discarded.
+   - It must be long enough to be a quotation. Three or more meaningful words,
+     not a single term like "abstraction".
+   - Its wording must be visible in the boundary you wrote. That is what
+     "adapted" means. If your boundary does not carry the language, you did not
+     adapt it, and the analog is discarded.
+
+   An identifier whose span fails any of those is dropped and the drop is
+   reported, so a loose claim costs accuracy and shows up in the run. An empty
+   list costs nothing.
 
    Two traps. Sharing a word is not being near - a standard about procedural
    abstraction in algorithms is not an analog for one about abstraction hiding
@@ -101,6 +112,22 @@ the scope of the statement in front of you rather than writing from scratch.
 That is what the reference is for."""
 
 
+class CstaAnalog(BaseModel):
+    """A claimed analog, with the evidence for it.
+
+    `adapted` is what makes this checkable. An identifier alone is an assertion
+    - it says a CSTA standard was worth adapting without showing that anything
+    was adapted. Quoting the span turns that into something `analogs.py` can
+    test against the reference and against the boundary that was written.
+    """
+    identifier: str = Field(
+        description="A CSTA id, copied exactly from the reference supplied.")
+    adapted: str = Field(
+        min_length=1,
+        description="The span of that CSTA standard's own wording you adapted, "
+                    "quoted from it word for word. Not a description of it.")
+
+
 class DraftedBoundary(BaseModel):
     identifier: str = Field(description="The standard's identifier, copied exactly.")
     # The bounds here are a sanity check for runaway output, NOT the style
@@ -125,14 +152,25 @@ class DraftedBoundary(BaseModel):
                     "look like a match without being one. Never empty.")
     keywords: list[str] = Field(
         min_length=1, description="Retrieval terms. Never sufficient evidence.")
-    nearest_csta: list[str] = Field(
+    analogs: list[CstaAnalog] = Field(
         default_factory=list, max_length=3,
-        description="0 to 3 ids taken only from the CSTA reference supplied. "
-                    "Never invent one. Empty is honest.")
+        description="0 to 3 CSTA standards whose boundary wording you actually "
+                    "adapted, each with the span you adapted. Empty is honest "
+                    "and is the usual answer.")
     unclear: str | None = Field(
         default=None,
         description="Set when the standard's intent cannot be read confidently. "
                     "Say what is ambiguous. Do not guess broad in silence.")
+
+    @property
+    def nearest_csta(self):
+        """The identifiers, which is all the database stores.
+
+        The evidence in `analogs` exists to decide what belongs in this list.
+        Once the gate has run, it has done its job, so the column stays a plain
+        `text[]` and nothing downstream of ingestion changes.
+        """
+        return [a.identifier for a in self.analogs]
 
 
 class DraftedBatch(BaseModel):
@@ -224,7 +262,8 @@ def actual_cost(usage):
                     "which is billed as output."}
 
 
-def draft_boundaries(standards, progress=None, include_specialty=False, usage=None):
+def draft_boundaries(standards, progress=None, include_specialty=False,
+                     usage=None, gate=None):
     """Draft a boundary for each standard. Returns {identifier: DraftedBoundary}.
 
     Umbrella headings are skipped. They are rated by rollup from the standards
@@ -241,8 +280,10 @@ def draft_boundaries(standards, progress=None, include_specialty=False, usage=No
     reference = csta.reference_for(bands, include_specialty)
     reference_text = csta.as_prompt(reference)
     known_ids = csta.valid_ids(reference)
+    csta_texts = csta.texts_for(reference)
     system = _system_blocks(reference_text)
     invented = set()
+    gate_drops = []
 
     # What the run actually costs, accumulated from every call including the
     # extra ones a split causes. Reported rather than estimated: the estimate
@@ -297,11 +338,17 @@ def draft_boundaries(standards, progress=None, include_specialty=False, usage=No
         for b in [x for r in responses for x in r.parsed_output.boundaries]:
             # An identifier the model invented is worse than an empty list: it
             # looks like an audit trail and is not one. Drop it and say so.
+            # This runs first: there is nothing for the gate to check a quoted
+            # span against when the standard it credits does not exist.
             if known_ids:
-                bad = [i for i in b.nearest_csta if i not in known_ids]
+                bad = [a.identifier for a in b.analogs
+                       if a.identifier not in known_ids]
                 if bad:
                     invented.update(bad)
-                    b.nearest_csta = [i for i in b.nearest_csta if i in known_ids]
+                    b.analogs = [a for a in b.analogs
+                                 if a.identifier in known_ids]
+            for identifier, reason in analogs.apply_gate(b, csta_texts):
+                gate_drops.append((b.identifier, identifier, reason))
             drafted[b.identifier] = b
         if progress:
             progress(min(start + BATCH_SIZE, len(drafting)), len(drafting),
@@ -313,6 +360,23 @@ def draft_boundaries(standards, progress=None, include_specialty=False, usage=No
     if invented:
         print(f"Dropped {len(invented)} CSTA identifier(s) that are not in the "
               f"reference: {', '.join(sorted(invented)[:8])}")
+
+    # The gate's drops are reported, never silent. A gate set too strict would
+    # otherwise look exactly like a drafter that stopped stretching, and the
+    # two call for opposite responses.
+    reasons = {}
+    for _, _, reason in gate_drops:
+        reasons[reason] = reasons.get(reason, 0) + 1
+    if gate_drops:
+        print(f"Gate dropped {len(gate_drops)} claimed CSTA analog(s): "
+              + "; ".join(f"{n} {r}" for r, n in sorted(reasons.items())))
+    if gate is not None:
+        gate.update({
+            "dropped": len(gate_drops),
+            "reasons": reasons,
+            "examples": [{"standard": std, "csta": cid, "reason": reason}
+                         for std, cid, reason in gate_drops[:5]],
+        })
 
     missing = [s.identifier for s in drafting if s.identifier not in drafted]
     if missing:
