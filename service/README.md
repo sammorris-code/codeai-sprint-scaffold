@@ -508,6 +508,102 @@ stale and the wrong ones did not.
 
 ---
 
+## Running an alignment
+
+The standards half and the curriculum half meet here. A run judges one course
+against one standards set, one lesson at a time.
+
+```bash
+python3 service/align.py --set 3 --course 5 \
+  --scope "All concepts, all grade bands in the set (9-12)" --limit 5
+```
+
+`--limit` runs a pilot. Do that first: it prints the measured cost per lesson,
+so the full run is a decision rather than a surprise. `--dry-run` builds the
+prompts and calls nothing.
+
+**`--scope` is required and has no default.** Coverage against a whole
+framework and coverage against the part in scope are both true and differ by
+half. A run that cannot say which one it is produces a percentage nobody can
+defend.
+
+Every record lands as `proposed`. Nothing is approved, nothing is public, and
+the run does not decide that for itself.
+
+### What it costs
+
+One model call per lesson. The standards set is identical for every lesson, so
+it goes in the cached prefix and the lesson is the only thing that changes:
+
+```
+35,800 tokens per lesson, of which 26,600 are cached
+~$0.07 a lesson on Opus 5 once the cache is warm
+~$10 for a 146-lesson course pair against a 55-standard framework
+```
+
+Set `ALIGNMENT_MODEL` or pass `--model` to use something cheaper.
+
+### How a claim survives
+
+The rules come from the `csta-alignment` skill, which is the written record of
+how this judgement is made. Four levels, evidence that names a student task,
+boundaries as the defence against vocabulary matches.
+
+**The seven verification checks run in code, after the model.** That is
+deliberate. Asking a model to mark its own work is an assertion; a demotion
+that happens in a script is a rule. Where a check needs judgement the model
+already supplied — did the student task reach the standard's cognitive verb —
+the model reports the fact and `verify.py` applies the consequence:
+
+| Check | What happens |
+|---|---|
+| Not in the candidate set | rejected |
+| Evidence names no student task | rejected |
+| Below the standard's cognitive verb | demoted a level, flagged |
+| Artifact is a different kind | kept, flagged, never silent |
+| Evidence only in a choice branch | capped at introduced |
+| Six or more claims on one lesson | all flagged as overclaim |
+| Same evidence across concepts | both kept, each annotated with the other |
+| Count check | the six outcomes must sum to the candidate set |
+
+**The model is asked for its rejections too.** A claim it did not make is
+invisible otherwise, and a rejection resting on a drafted boundary may be the
+boundary's fault rather than the curriculum's — which is why an unreviewed
+boundary says so inside the prompt.
+
+### Comparing against a hand mapping
+
+```bash
+python3 service/import_legacy.py --csv mapping.csv    # resolve and check it
+python3 service/reconcile.py --run 3 --csv mapping.csv --rejections run.json
+```
+
+`import_legacy.py` resolves each row to a `stable_id` and reports what will not
+resolve. It joins units **by position, not displayed number** — the two
+disagree in AIF Semester 2, and a hand file that numbers units in teaching
+order is using position.
+
+`reconcile.py` runs the diff only, never before the run, so the run cannot be
+anchored by the file it is being compared to. Pairs the file has and the run
+does not come back with the run's own reason for each.
+
+A mapping with no mastery column is a correlation list, not a rating. The
+comparison is then set overlap, and the report says so rather than inventing
+agreement on levels nobody recorded.
+
+### Exporting
+
+```bash
+python3 service/export_mapping.py --run 3 --course-code AIF --semester S1
+```
+
+Writes `COURSE_FRAMEWORK_SET_YEAR_mapping.csv` into `mapped_standards/`, which
+is git-ignored: a coverage percentage against a named real state is a claim,
+and this repository is public. `--only-accepted` exports what a reviewer has
+actually approved.
+
+---
+
 ## What the service enforces
 
 These are not conventions. The service refuses, so no interface has to remember.
