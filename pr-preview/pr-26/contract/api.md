@@ -52,8 +52,14 @@ Fixture: `standards-sets.json`, and `standards-sets-empty.json` for day one.
 ```
 
 `publishable` is computed: true when `boundary_provenance` is `drafted+reviewed`.
-The interface reads this one field for the lock banner. It never re-derives the
-rule.
+The interface reads this one field. It never re-derives the rule.
+
+**It no longer gates publishing**, despite the name. Publishing needs an approved
+run and nothing else — `REVIEW-DESIGN.md` says why the set-level condition went.
+What the field still tells you truthfully is whether every boundary in the set
+has been checked by a person, which is worth showing. The name is now a poor
+description of what it reports and is a candidate to be renamed; it is kept for
+the moment because three screens read it.
 
 ### `POST /api/standards-sets/characterize`
 Read a document and report what is in it. **Writes nothing.**
@@ -87,11 +93,14 @@ in the store without one. If drafting fails — no API key, a model error — no
 is written at all, and the document can simply be re-sent once the problem is
 fixed. A half-written set is harder to reason about than no set.
 
-The new set is always `drafted` and never publishable. A person checks the
-boundaries next.
+The new set is always `drafted`, and that no longer blocks anything. Its results
+can be published as soon as a run against it is approved. Its boundaries get
+checked when an alignment makes one matter, not before.
 
 ### `GET /api/standards-sets/{id}/boundary-queue`
-The one-time gate for a set. Returns every standard whose boundary nobody has
+No longer a gate — nothing waits on it. It is a worklist for anyone who wants to
+check boundaries ahead of time, and the place a boundary raised by an alignment
+is answered. Returns every standard whose boundary nobody has
 checked yet, with the drafted text.
 
 A drafted boundary means a later rejection may be the boundary's fault rather
