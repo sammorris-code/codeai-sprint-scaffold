@@ -80,6 +80,17 @@ jobs:
       - name: Does ingestion work end to end?
         run: python3 service/test_ingestion.py
 
+      # Curriculum extraction, against a synthetic upstream repository built
+      # in a temp directory. No network. Every trap that produces a corpus
+      # that looks fine and is wrong has a case here.
+      - name: Does curriculum extraction read everything it should?
+        run: python3 service/test_curriculum.py
+
+      # This one truncates the curriculum and alignment tables, so it runs
+      # after the contract test, which serves the fixture data.
+      - name: Does loading a corpus flag the claims that went stale?
+        run: python3 service/test_curriculum_load.py
+
       - name: Show the API log when something failed
         if: failure()
         run: cat /tmp/api.log

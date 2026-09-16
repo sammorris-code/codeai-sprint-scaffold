@@ -54,8 +54,17 @@ db/
 app/
   main.py            every endpoint
   db.py              the connection pool
+  curriculum/        reads the upstream repository; see The curriculum corpus
+    repo.py            blobs at one pinned commit, never a working tree
+    levels.py          student-facing content, in both of its formats
+    lessons.py         joins a unit file's tables into one record per lesson
+    corpus.py          walks courses to units to lessons, writes the corpus
+extract_curriculum.py  upstream  -> a corpus directory
+load_curriculum.py     a corpus  -> a Postgres snapshot, and the stale pass
 load_fixtures.py     puts contract/fixtures/ into Postgres
 test_contract.py     proves the API returns what the fixtures promise
+test_curriculum.py      extraction, against a synthetic upstream repo
+test_curriculum_load.py loading and the stale pass, against Postgres
 ```
 
 ### The schema is generated, not written
@@ -221,6 +230,141 @@ derived from character counts, not a quote — measure exactly with
 
 CSV only so far. PDF and XLSX need a document-parsing step that is not built;
 the API refuses them by name rather than half-reading them.
+
+---
+
+## The curriculum corpus
+
+The standards half of the pipeline is above. This is the curriculum half: the
+evidence an alignment claim is actually made against.
+
+Two commands. The first reads upstream and writes a corpus; the second loads
+that corpus into Postgres as a snapshot.
+
+```bash
+git clone --depth 1 --no-checkout -b staging \
+  https://github.com/code-dot-org/code-dot-org.git cdo
+python3 service/extract_curriculum.py --repo ./cdo --out ./out --courses aif
+python3 service/load_curriculum.py --corpus ./out --make-current
+```
+
+`out/` and `cdo/` are git-ignored. **The upstream repository is read-only and
+nothing here ever writes to it.**
+
+### Clone it exactly like that
+
+Both flags are load-bearing, and the briefing's recipe does not work on
+Windows.
+
+`--no-checkout`, because there is no working tree to check out into. 512 level
+files have `:` or `?` in their names, which Windows forbids. `git checkout`
+refuses those paths, abandons the whole `dashboard/config/levels/` directory —
+all 64,258 files — and **exits 0**. An extractor reading the working tree then
+reports success and finds no student instructions at all. Everything here is
+read out of git object storage with `git cat-file`, which never touches the
+filesystem and behaves the same on every machine.
+
+No `--filter=blob:none`, because a partial clone fetches each blob on demand
+and the demand here is a hundred thousand small files, one network round trip
+each. Fetching them in one pack up front is the difference between seconds and
+hours. It costs 280 MB, which is less than the sparse checkout it replaces.
+
+### What comes out
+
+```
+manifest.csv          one row per lesson. Open this first.
+manifest.json         the same, plus course and unit metadata and provenance
+warnings.json         everything the run could not do cleanly
+lessons/<unit>/NN-<slug>.md        readable lesson plan
+lessons/<unit>/NN-<slug>.json      lesson-plan record
+levels/<unit>/NN-<slug>.levels.md    student instructions, in student order
+levels/<unit>/NN-<slug>.levels.json  student-instruction record
+.cache/               the level-name index, keyed by commit. Safe to delete.
+```
+
+Both halves run in one command. They used to be two, and a corpus with lesson
+plans but no student instructions is the exact undercount this pipeline exists
+to prevent — a separate second step is a step that gets skipped.
+
+### AIF today
+
+```
+3 courses, 15 distinct units, 190 lessons, 2,197 levels
+129,080 student words, 6,065 instructional minutes
+607 standard citations, all resolved to statement text
+0 unresolved level references
+```
+
+Units are shared, so counts overlap on purpose: the full-year course reuses
+both semesters' units, and each unit is extracted once and attributed to every
+course that includes it. `--courses aid` adds AI Discoveries; extending to CSD
+or CSP is a course key, not new code.
+
+### Four ways to undercount without noticing
+
+Each of these was found while building this, and each produced a corpus that
+completed with no error and the wrong number in it.
+
+**A third of the levels are not in the levels directory.** They are under
+`dashboard/config/scripts/` as DSL text, and the file name is *sanitised*:
+`ai_and_algorithmic_decisions_lesson10_..._2025.bubble_choice` on disk is
+`ai-and-algorithmic-decisions-lesson10-...-2025` to the curriculum. You have to
+open each file and read the `name` line inside. In one AIF unit that is 24 of
+57 levels — 42%.
+
+**Parent levels hold no text of their own.** `bubble_choice` and `level_group`
+levels, and code levels with `contained_level_names`, keep their content in
+their children. Expanding them multiplies the student word count 3.1x in a
+sample unit. Reading parents only finds under a third of the words and reports
+nothing.
+
+**Some text is in a list, not a string.** A `Panels` level keeps everything a
+student reads in `panels[].text`. A reader that only looks at string
+properties records the level as empty. 37 AIF levels, several of them full
+pages of explanation.
+
+**Some levels are authored with curly quotes.** `question ‘Which of these…’`
+instead of `'…'`. A parser that knows only `'` and `"` drops the question and
+every answer option. 30 AIF levels.
+
+The last two were worth 13,700 student words, 11% of the corpus. `warnings.json`
+and the totals exist so the next one of these is visible rather than inferred.
+
+### Change detection
+
+Every lesson carries a `content_hash` over its content fields only — no
+timestamps, no paths, no commit. The unit's own `serialized_at` cannot do this
+job, because one edited section restamps the whole unit.
+
+`load_curriculum.py` compares that hash against the `lesson_content_hash`
+stored on every `alignment_record` — the hash as it was when the claim was
+made. Every row that differs goes back to `stale` and returns to the review
+queue, and every change is written to `review_event`. **This is the whole
+answer to the stale-spreadsheet problem**, and it is why the store beats the
+spreadsheet it replaces.
+
+Loading does not promote a snapshot unless you pass `--make-current`, and it
+never deletes the old one: a run is reproducible only while the lesson rows it
+was made against still exist.
+
+A snapshot need not cover every course, so "not in this snapshot" is not read
+as "deleted upstream". The disappearance check is limited to units the snapshot
+actually contains — otherwise the first AIF-only extraction would mark every
+AID claim stale.
+
+### Testing it
+
+```bash
+python3 service/test_curriculum.py        # no database, no network
+python3 service/test_curriculum_load.py   # needs Postgres
+```
+
+The first builds a synthetic upstream repository containing one of each trap
+above and asserts on what would otherwise be silent — including a level whose
+file name cannot exist on Windows, written into the tree with `git
+update-index` so it is in the commit but on no disk. The second makes a claim,
+changes the lesson, loads a new snapshot, and checks that the right claim went
+stale and the wrong ones did not.
 
 ---
 

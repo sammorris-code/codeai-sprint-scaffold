@@ -298,18 +298,22 @@ def write(result, out_dir, log=print):
         (out / "levels" / script_name).mkdir(parents=True, exist_ok=True)
         for lesson in unit["lessons"]:
             stem = f"{lesson['absolute_position']:02d}-{lesson['slug']}"
-            base = out / "lessons" / script_name / stem
-            base.with_suffix(".json").write_text(
+            # Names are built by concatenation, not with_suffix(). A stem like
+            # `05-capstone.levels` has `.levels` read as its extension, so
+            # with_suffix('.md') replaces it instead of adding to it and the
+            # file quietly lands at `05-capstone.md`.
+            plan_dir = out / "lessons" / script_name
+            (plan_dir / f"{stem}.json").write_text(
                 json.dumps(lesson, indent=2, ensure_ascii=False), encoding="utf-8")
-            base.with_suffix(".md").write_text(
+            (plan_dir / f"{stem}.md").write_text(
                 _lesson_markdown(lesson), encoding="utf-8")
 
-            lbase = out / "levels" / script_name / f"{stem}.levels"
-            lbase.with_suffix(".json").write_text(
+            level_dir = out / "levels" / script_name
+            (level_dir / f"{stem}.levels.json").write_text(
                 json.dumps({"stable_id": lesson["stable_id"],
                             "levels": lesson["levels"]},
                            indent=2, ensure_ascii=False), encoding="utf-8")
-            lbase.with_suffix(".md").write_text(
+            (level_dir / f"{stem}.levels.md").write_text(
                 _levels_markdown(lesson), encoding="utf-8")
 
             rows.append(_lesson_row(lesson, courses_by_unit.get(script_name, [])))

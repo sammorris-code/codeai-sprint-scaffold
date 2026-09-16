@@ -289,10 +289,11 @@ class LevelIndex:
         unnamed = 0
         for path, text in self.repo.read_many(dsl_paths):
             m = DSL_NAME.search(text)
-            if not m:
+            name = _quoted_value(m) if m else None
+            if not name:
                 unnamed += 1
                 continue
-            self.by_name.setdefault(m.group(2), path)
+            self.by_name.setdefault(name, path)
 
         self.stats = {
             "xml_files": len(xml_paths),
