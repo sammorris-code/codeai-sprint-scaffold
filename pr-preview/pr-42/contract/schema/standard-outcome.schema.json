@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "standard-outcome.schema.json",
+  "title": "Standard outcome",
+  "description": "One row for every standard in a run, misses included. The six values sum to the candidate set.",
+  "type": "object",
+  "required": ["standard_id", "outcome", "in_scope"],
+  "additionalProperties": false,
+  "properties": {
+    "standard_id": {"type": "integer"},
+    "outcome": {"enum": ["mastered", "developed", "introduced",
+                         "not_addressed", "boundary_issue",
+                         "not_curriculum_addressable"]},
+    "in_scope": {"type": "boolean"},
+    "rationale": {"type": ["string", "null"],
+      "description": "Internal only. Not returned by /public."},
+    "has_caveat": {"type": "boolean",
+      "description": "Covered in part, not in full. Counted by covered_with_caveat."}
+  }
+}
