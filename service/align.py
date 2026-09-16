@@ -76,6 +76,11 @@ def main(argv=None):
     ap.add_argument("--grades", default=None,
                     help="filter candidates to bands overlapping these grades")
     ap.add_argument("--limit", type=int, default=None, help="pilot on N lessons")
+    ap.add_argument("--lessons", default=None,
+                    help="comma-separated stable_ids, for a controlled comparison")
+    ap.add_argument("--evidence", default="full", choices=("full", "distilled"),
+                    help="full sends the teaching guide and student screens; "
+                         "distilled sends the action summary only")
     ap.add_argument("--model", default=engine.MODEL)
     ap.add_argument("--dry-run", action="store_true",
                     help="build the prompts, call nothing, report the size")
@@ -101,6 +106,9 @@ def main(argv=None):
             all_standards, args.grades)
         candidate_ids = [s["identifier"] for s in candidates]
         lessons = fetch_lessons(conn, args.course, snapshot_id, args.limit)
+        if args.lessons:
+            wanted = {s.strip() for s in args.lessons.split("|") if s.strip()}
+            lessons = [l for l in lessons if l["stable_id"] in wanted]
 
         print(f"Standards : {standards_set['framework']}/"
               f"{standards_set['standard_set']}/{standards_set['framework_year']}"
@@ -109,7 +117,7 @@ def main(argv=None):
                  if filter_note.get("filtered") else ""))
         print(f"Course    : {course['course_name']}  ({len(lessons)} taught lessons)")
         print(f"Scope     : {args.scope}")
-        print(f"Model     : {args.model}")
+        print(f"Model     : {args.model}   evidence: {args.evidence}")
         if standards_set["boundary_provenance"] == "drafted":
             print("NOTE      : these boundaries are drafted and unreviewed. A "
                   "rejection on a boundary may be the boundary's fault.")
@@ -120,7 +128,8 @@ def main(argv=None):
             import anthropic
             engine.load_key()
             client = anthropic.Anthropic()
-            sample = engine.lesson_block(lessons[0], distil(lessons[0]))
+            sample = engine.lesson_block(lessons[0], distil(lessons[0]),
+                                        args.evidence)
             counted = client.messages.count_tokens(
                 model=args.model,
                 system=[{"type": "text", "text": engine.RULES},
