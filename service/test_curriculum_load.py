@@ -215,12 +215,18 @@ def main():
 
         # --- a claim outside the snapshot's scope --------------------------
         print("\nA claim on a unit this snapshot does not cover")
+        # A third lesson, because (run_id, standard_id, lesson_id) is unique
+        # and the two above have used their pairs. The row that matters here
+        # is lesson_stable_id, which names a unit no snapshot contains.
+        spare = cur.execute(
+            "SELECT id FROM lesson WHERE stable_id=%s",
+            (f"{UNIT}::Pre-Assessment",)).fetchone()
         cur.execute("""INSERT INTO alignment_record
             (run_id, standard_id, lesson_id, lesson_stable_id,
              lesson_content_hash, level, evidence, review_status)
             VALUES (%s,%s,%s,'some-other-unit-2026::Lesson 1',
                     'deadbeef','introduced','A task.','accepted')""",
-            (run_id, standard_id, wont_change["id"]))
+            (run_id, standard_id, spare["id"]))
         conn.commit()
 
         path.write_text(path.read_text(encoding="utf-8")
