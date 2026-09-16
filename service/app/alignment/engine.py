@@ -350,6 +350,93 @@ def lesson_block(lesson, distilled, evidence="full"):
     return "\n".join(out)
 
 
+# ---------------------------------------------------------------------------
+# Tier 1: a cheap model narrows the candidate set before the expensive one
+# judges it.
+#
+# The free lexical screen was measured and does not work — see screen.py. The
+# reason is that alignment is semantic: a standard about evaluating an artifact
+# for accessibility belongs on a lesson about user testing, and the two share
+# almost no vocabulary. A small model can see that; a keyword match cannot.
+#
+# This asks only "could this lesson plausibly evidence this standard", which is
+# a recall question. It is told to err towards keeping, because a standard it
+# drops is one the expensive tier never sees.
+# ---------------------------------------------------------------------------
+
+SCREEN_MODEL = os.environ.get("SCREEN_MODEL", "claude-haiku-4-5")
+
+SCREEN_RULES = """You are narrowing a list before a careful reader looks at it.
+
+You will see one lesson and a list of standards. Return the standards that this \
+lesson could plausibly evidence, so that somebody else can judge them properly.
+
+You are not deciding whether the standard is met. You are deciding whether it is \
+worth reading the lesson against. Keep a standard when the lesson touches its \
+subject in any way — taught, discussed, practised, or produced. Drop it only \
+when the lesson has nothing to do with it.
+
+**The two mistakes are not equal.** A standard you keep and that turns out not \
+to match costs a few cents of somebody else's reading. A standard you drop is \
+never looked at again by anyone, and the curriculum is recorded as not teaching \
+it. Keeping is cheap. Dropping is permanent.
+
+So keep generously. If you can imagine a reader pointing at any part of this \
+lesson and arguing for the standard — even weakly, even at the level of a \
+passing mention or a discussion prompt — keep it. Drop a standard only when the \
+lesson has nothing whatever to do with its subject.
+
+Keeping twenty-five of fifty is a perfectly good answer. Keeping five is almost \
+certainly wrong, and means you have started judging rather than screening."""
+
+SCREEN_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "plausible": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["plausible"],
+    "additionalProperties": False,
+}
+
+
+def screen_block(standards):
+    """The standards, stated only. No boundaries.
+
+    The screen is a relevance question, and the boundaries are what make the
+    prompt large — they belong in tier 2, where the judgement happens.
+    """
+    lines = ["The standards:", ""]
+    for s in standards:
+        lines.append(f"- {s['identifier']} [{s['concept']}]: {s['statement']}")
+    return "\n".join(lines)
+
+
+def screen_lesson(client, screen_text, lesson, distilled, model=SCREEN_MODEL,
+                  usage=None, evidence="full"):
+    """Which standards are worth judging for this lesson."""
+    response = client.messages.create(
+        model=model,
+        max_tokens=2000,
+        system=[
+            {"type": "text", "text": SCREEN_RULES},
+            {"type": "text", "text": screen_text,
+             "cache_control": {"type": "ephemeral"}},
+        ],
+        messages=[{"role": "user",
+                   "content": lesson_block(lesson, distilled, evidence)}],
+        output_config={"format": {"type": "json_schema",
+                                  "schema": SCREEN_SCHEMA}},
+    )
+    if usage is not None:
+        u = response.usage
+        usage["calls"] = usage.get("calls", 0) + 1
+        for field in ("input_tokens", "output_tokens",
+                      "cache_creation_input_tokens", "cache_read_input_tokens"):
+            usage[field] = usage.get(field, 0) + (getattr(u, field, 0) or 0)
+    text = next(b.text for b in response.content if b.type == "text")
+    return json.loads(text).get("plausible", [])
+
+
 def load_key(env_path="service/.env"):
     """Read ANTHROPIC_API_KEY from the environment, or from service/.env."""
     if os.environ.get("ANTHROPIC_API_KEY"):
