@@ -151,7 +151,15 @@ def build_fixture(root):
         "description 'Choose one scenario and build it.'\n"
         "\nsublevels\n"
         "level 'demo-choice-1a'\n"
-        "level 'demo-choice-1b'\n", encoding="utf-8")
+        "level 'demo-choice-1b'\n"
+        "level 'demo-choice-1c'\n", encoding="utf-8")
+    # An active child, so the distiller has a choice option that is an action
+    # rather than a page to read.
+    (cfg / "scripts" / "demo_choice_1c.multi").write_text(
+        "name 'demo-choice-1c'\n\n"
+        "question 'Which branch did your scenario need?'\n\n"
+        "right 'The one that checks the condition first'\n"
+        "wrong 'Any of them'\n", encoding="utf-8")
     (cfg / "scripts" / "demo_choice_1a.external").write_text(
         "name 'demo-choice-1a'\n"
         "markdown <<MARKDOWN\n"
@@ -481,6 +489,56 @@ def main():
         check("and leaves other lessons alone",
               moved[f"{UNIT}::Lesson 2: Project"]["content_hash"]
               == lessons[f"{UNIT}::Lesson 2: Project"]["content_hash"])
+
+        print("\nThe distilled layer")
+        from service.app.curriculum.distil import distil          # noqa: E402
+        d_project = distil(lessons[f"{UNIT}::Lesson 2: Project"])
+        d_alt = distil(lessons[f"{UNIT}::Alt: Project"])
+        d_one = distil(lesson)
+
+        check("the level type drives the action, with no heading needed",
+              any(a["level_type"] == "weblab2" for a in d_project["every_student"]),
+              f"{[a['level_type'] for a in d_project['every_student']]}")
+        check("a reading level is not counted as an action",
+              all(a["level_type"] != "panels"
+                  for a in d_one["every_student"] + d_one["one_option_only"]),
+              f"{[a['level_type'] for a in d_one['every_student']]}")
+        check("and reading levels are still counted",
+              d_one["reading_levels"] >= 1, f"{d_one['reading_levels']}")
+        check("a choice option is separated from what everyone does",
+              any(a["level_type"] == "multi"
+                  for a in d_project["one_option_only"]),
+              f"{[(a['level_type'], a['is_choice_option']) for a in d_project['one_option_only']]}")
+        check("the choice parent is named",
+              all(a["choice_parent"] for a in d_project["one_option_only"]))
+        check("an alternate progression is flagged",
+              d_alt["is_alternate_progression"] is True)
+        check("and says so in its open questions",
+              any("one or the other" in q for q in d_alt["open_questions"]),
+              f"{d_alt['open_questions']}")
+        check("a lesson with no objective asks about it",
+              any("no authored objective" in q.lower()
+                  for q in d_project["open_questions"]),
+              f"{d_project['open_questions']}")
+        check("an objective is checked, not concluded",
+              all(o["verdict"] in ("looks supported", "check this")
+                  for o in d_one["objectives"]),
+              f"{d_one['objectives']}")
+        check("the signal that found each action is recorded",
+              d_project["signals"]["level_type"] > 0)
+        check("student text is quoted, not reworded",
+              all(isinstance(s, str) for a in d_one["every_student"]
+                  for s in a["steps"]))
+        check("the distilled record carries the lesson hash",
+              d_one["content_hash"] == lesson["content_hash"])
+
+        check("distilled files were written",
+              any((out_dir / "distilled" / UNIT).glob("*.actions.md"))
+              and any((out_dir / "distilled" / UNIT).glob("*.actions.json")))
+        check("the manifest reports how far the layer reached",
+              manifest["distilled"]["taught_lessons"] > 0
+              and "with_a_student_action" in manifest["distilled"],
+              f"{manifest.get('distilled')}")
 
         print("\nThe corpus on disk")
         check("manifest.csv was written", (out_dir / "manifest.csv").exists())
