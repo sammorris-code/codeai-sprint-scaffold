@@ -61,9 +61,24 @@ Rules, in order of importance:
 
 7. nearest_csta holds between 0 and 3 identifiers, taken ONLY from the CSTA
    reference given to you below. Never write an identifier that is not in that
-   list. Match on meaning, not on shared vocabulary. An empty list is an honest
-   answer and is better than a stretch. This is a drafting aid and an audit
-   trail. It is NOT a validated crosswalk and must never be presented as one.
+   list.
+
+   The purpose of a nearest analog is to give you boundary language worth
+   adapting. So the test is simply: WOULD YOU ACTUALLY ADAPT THIS STANDARD'S
+   BOUNDARY WORDING for the statement in front of you? If you would not, it is
+   not a nearest analog, and the answer is an empty list.
+
+   Most state standards have no close CSTA analog. An empty list is the common
+   and expected answer, not a failure to find something. Returning a loose
+   match on every standard turns this field into a crosswalk, which is exactly
+   what it must never be: it is a drafting aid and an audit trail.
+
+   Two traps. Sharing a word is not being near - a standard about procedural
+   abstraction in algorithms is not an analog for one about abstraction hiding
+   implementation detail in an embedded device. And sitting in a related area
+   is not being near either - a standard about evaluating a design against its
+   specification is not an analog for one about troubleshooting faults, even
+   though both concern testing.
 
 8. No line may repeat another. Every inclusion and every exclusion must be able
    to change a decision on its own: if a reviewer deleted it, some lesson would

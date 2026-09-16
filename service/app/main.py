@@ -246,6 +246,13 @@ async def ingest(file: UploadFile = File(...),
                               "id": by_identifier[s.identifier]})
         conn.commit()
 
+    # How often a nearest CSTA analog was found. Reported because the honest
+    # answer is often "none": most state standards have no close analog, and a
+    # field populated on every row reads like a crosswalk, which it must never
+    # be. A rate of 100% means the drafter is stretching.
+    with_analog = sum(1 for b in drafted.values() if b.nearest_csta)
+    drafted_count = len(drafted) or 1
+
     return {"id": set_id,
             "framework": identity.framework,
             "standard_set": identity.standard_set,
@@ -253,6 +260,15 @@ async def ingest(file: UploadFile = File(...),
             "standard_count": c.extracted_count,
             "boundary_provenance": "drafted",
             "publishable": False,
+            "nearest_csta": {
+                "with_analog": with_analog,
+                "no_analog": len(drafted) - with_analog,
+                "percent_with_analog": round(100 * with_analog / drafted_count),
+                "note": "An analog is only recorded when its boundary wording "
+                        "was worth adapting. Most state standards have none, so "
+                        "a high percentage here is a sign of stretching, not of "
+                        "good coverage.",
+            },
             "warnings": c.warnings,
             "next": f"A person must now check the boundaries. "
                     f"GET /api/standards-sets/{set_id}/boundary-queue"}

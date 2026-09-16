@@ -89,6 +89,7 @@ with TestClient(main.app) as c:
         r = c.post("/api/standards-sets",
                    files={"file": ("DEMO_CS_2026.csv", f, "text/csv")}, data=form)
     check("returns 201", r.status_code == 201, r.text[:160])
+    r_ingest = r
     set_id = r.json()["id"]
     check("the set is not publishable yet", r.json()["publishable"] is False)
     check("its boundaries are marked drafted",
@@ -185,6 +186,18 @@ with TestClient(main.app) as c:
         check("three includes and six excludes are allowed", True)
     except ValidationError as e:
         check("three includes and six excludes are allowed", False, str(e)[:80])
+
+    print("\nThe analog rate is reported")
+    # The honest answer is often "no analog". Reporting the rate is how you
+    # notice the drafter stretching to fill the field on every row.
+    rate = r_ingest.json()["nearest_csta"]
+    check("the response reports how many had no analog", "no_analog" in rate)
+    check("with_analog and no_analog account for every drafted standard",
+          rate["with_analog"] + rate["no_analog"] == 13,
+          f"got {rate['with_analog']} + {rate['no_analog']}, expected 13 "
+          f"(14 standards less the umbrella heading)")
+    check("the note warns that a high rate is stretching",
+          "stretching" in rate["note"])
 
     print("\nThe same set cannot be ingested twice")
     with open(CSV, "rb") as f:
