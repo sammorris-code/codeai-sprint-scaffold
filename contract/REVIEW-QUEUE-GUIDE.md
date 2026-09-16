@@ -123,12 +123,18 @@ you change your mind? Does the progress count at the top go up?
 that when we connect the real server later only that part changes." This matters
 more than it sounds — see section 8.
 
-### Step 4 — The warnings and the lock
+### Step 4 — The warnings and the banner
 
 > Show the warnings on each proposed lesson, using the exact words in the data,
-> not the internal names. Then add a banner: when the standards set has not been
-> checked by a person yet, the results cannot go to a district — say so plainly
-> and switch off any publish action.
+> not the internal names. Then add a banner: when nobody has checked the
+> standards set's boundary notes yet, say so plainly.
+
+**This step has changed since the guide was written.** The banner used to say
+that results could not go to a district until the notes were checked, and to
+switch off any publish action. That rule is gone — publishing needs an approved
+run and nothing else, and boundary notes get checked when an alignment turns on
+one. See `REVIEW-DESIGN.md` and `BRIEF-FOR-THE-REVIEW-TOOL.md`. The banner is
+still worth showing; it just reports a state rather than announcing a block.
 
 **Look for:** the warnings should read like sentences a person wrote — *"Lesson
 may not go deep enough"* — not like codes. The banner must be hard to miss and
