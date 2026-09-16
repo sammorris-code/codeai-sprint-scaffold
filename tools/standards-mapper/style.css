@@ -25,35 +25,25 @@
  * one" — have to reach a reviewer who cannot tell the two tints apart.
  */
 
-/* --- Sample-data marker -------------------------------------------------
-   This is an internal tool reading invented data. Somebody must be able to
-   tell at a glance that a number on this screen is not a claim about a real
-   course. Do not remove this when real data arrives; change what it says. */
+/* --- Choosing what to review --------------------------------------------
+   The chooser is the first thing under the title now that the explainer is
+   gone, so it does not need a full section's worth of air above it. */
 
-.demo-marker {
-  border: 2px dashed var(--line-strong);
-  border-radius: var(--radius);
-  padding: 0.75rem 1rem;
-  margin: 0 0 1.5rem;
-  font-weight: 500;
-  color: var(--purple-dark);
-  background: var(--surface-tint);
+main > .section:first-child {
+  margin-top: 0.5rem;
 }
 
-.demo-marker p {
-  margin: 0;
+.wb-chooser .field-row {
+  margin-bottom: 0.25rem;
 }
-
-.demo-marker .detail {
-  font-weight: 400;
-  margin-top: 0.25rem;
-}
-
-/* --- Where the data came from ------------------------------------------ */
 
 .source-status {
-  margin: 0 0 1rem;
+  margin: 0.25rem 0 0;
   color: var(--ink-quiet);
+}
+
+.source-status:empty {
+  display: none;
 }
 
 /* --- The page needs serving -------------------------------------------- */
@@ -94,8 +84,19 @@
   margin-bottom: 1rem;
 }
 
+/* The set's title and the pill saying which store it came from, on one
+   baseline. */
+.wb-run-title-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
 .wb-run-title {
-  margin: 0 0 0.25rem;
+  margin: 0;
+  font-size: 1.375rem;
 }
 
 .wb-run-detail {
@@ -501,4 +502,25 @@
 #queue-actions :focus {
   position: relative;
   z-index: 1;
+}
+
+
+/* --- About this tool -----------------------------------------------------
+   The scaffold metadata and the questions nobody has settled. Below the work
+   rather than above it: this is for the people building the tool, not the
+   people using it. */
+
+.wb-about {
+  border-top: 1px solid var(--line);
+  padding-top: 1.5rem;
+  color: var(--ink-quiet);
+}
+
+.wb-about h2,
+.wb-about h3 {
+  color: var(--ink);
+}
+
+.wb-about .meta {
+  margin-bottom: 1rem;
 }

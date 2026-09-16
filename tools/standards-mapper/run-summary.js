@@ -1,7 +1,12 @@
 /* run-summary.js — what this run is, and where it stands.
  *
- * The four tiles, the publish banner and the scope note at the top of the
- * workbench. Reads the context workbench.js builds; owns no fetching.
+ * The header, the four tiles and the publish banner. Reads the context
+ * workbench.js builds; owns no fetching.
+ *
+ * The header names the work the way the person doing it would: the state's
+ * framework, the grades it covers, the course it was run against. A run id is
+ * not how anybody identifies their own work, so it appears once, quietly, at
+ * the end of the line.
  *
  * The one rule this file exists to keep honest: a run reaches a district when
  * a person approves it, and never for any other reason. An earlier version of
@@ -18,7 +23,6 @@ window.RunSummary = (function () {
   var D = window.ReviewDecisions;
 
   var mount = document.getElementById('run-summary');
-  var context = null;
   var totalRecords = 0;
 
   function el(tag, className, text) {
@@ -28,9 +32,9 @@ window.RunSummary = (function () {
     return node;
   }
 
-  function say(message) {
+  function showMessage(text) {
     mount.innerHTML = '';
-    mount.appendChild(el('p', 'wb-note', message));
+    mount.appendChild(el('p', 'wb-note', text));
   }
 
   /* One tile. The number is what the eye lands on, so it is the larger of the
@@ -53,20 +57,79 @@ window.RunSummary = (function () {
     }, 0);
   }
 
-  /* The run, named the way a person would say it out loud. */
+  /* The grades this run covers.
+   *
+   * Taken from the standards themselves, not from the set: a set's `scope` is
+   * free text somebody may or may not have filled in - it is null on the
+   * Oklahoma set - while grade_band is on every standard by the time one has
+   * been ingested. The set's scope is the fallback, and saying nothing is
+   * better than guessing. */
+  function gradeLabel(ctx) {
+    var seen = {};
+    (ctx.queue.items || []).forEach(function (item) {
+      var band = item.standard && item.standard.grade_band;
+      if (band) { seen[band] = true; }
+    });
+
+    var bands = Object.keys(seen).sort();
+    if (bands.length) {
+      return 'Grades ' + bands.join(', ');
+    }
+    if (ctx.set && ctx.set.scope) {
+      return ctx.set.scope;
+    }
+    return null;
+  }
+
+  /* "16 September 2026". Intl where it exists, the ISO date otherwise -
+   * a date is worth showing even in a browser that will not format it. */
+  function whenStarted(run) {
+    if (!run.created_at) { return null; }
+    try {
+      return new Date(run.created_at).toLocaleDateString(undefined,
+        { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch (error) {
+      return String(run.created_at).slice(0, 10);
+    }
+  }
+
+  function joinParts(parts) {
+    return parts.filter(Boolean).join(' · ');
+  }
+
   function heading(ctx) {
     var wrap = el('div', 'wb-run-head');
 
-    var title = el('h3', 'wb-run-title',
-      ctx.set ? ctx.set.title : 'Standards set ' + ctx.run.set_id);
-    wrap.appendChild(title);
+    var titleRow = el('div', 'wb-run-title-row');
+    titleRow.appendChild(el('h3', 'wb-run-title',
+      ctx.set ? ctx.set.title : 'Standards set ' + ctx.run.set_id));
 
-    var parts = [];
-    if (ctx.set) { parts.push(S.setLabel(ctx.set)); }
-    if (ctx.course) { parts.push(ctx.course.course_name); }
-    parts.push('by ' + ctx.run.grain);
-    parts.push('course version ' + ctx.run.snapshot_id);
-    wrap.appendChild(el('p', 'wb-run-detail', parts.join(' · ')));
+    /* Which data this screen is reading. The old dashed "sample data" box
+     * said this and only had one answer; now that the page reads a live
+     * store it has two, and the honest thing is to name whichever it is. */
+    titleRow.appendChild(el('span',
+      'wb-pill ' + (S.mode === 'fixtures' ? 'wb-pill-warn' : 'wb-pill-concept'),
+      S.mode === 'fixtures' ? 'Sample data' : 'Live service'));
+    wrap.appendChild(titleRow);
+
+    // State, grade, course. In that order, because that is how it is asked for.
+    wrap.appendChild(el('p', 'wb-run-detail', joinParts([
+      ctx.set ? ctx.set.framework : null,
+      gradeLabel(ctx),
+      ctx.course ? ctx.course.course_name : null
+    ])));
+
+    // The provenance line: which framework year, which course version, and
+    // which of this pair's runs you are looking at.
+    var position = ctx.position || { index: 1, total: 1 };
+    wrap.appendChild(el('p', 'wb-run-detail', joinParts([
+      ctx.set ? ctx.set.framework_year + ' framework' : null,
+      'course version ' + ctx.run.snapshot_id,
+      'by ' + ctx.run.grain,
+      'run ' + position.index + ' of ' + position.total,
+      S.runStatusWord(ctx.run),
+      whenStarted(ctx.run) ? 'started ' + whenStarted(ctx.run) : null
+    ])));
 
     return wrap;
   }
@@ -160,7 +223,8 @@ window.RunSummary = (function () {
   }
 
   function render(ctx) {
-    context = ctx;
+    if (!ctx.run) { return; }
+
     totalRecords = countRecords(ctx.queue);
 
     mount.innerHTML = '';
@@ -178,23 +242,13 @@ window.RunSummary = (function () {
    * down as the reviewer works. Only that tile changes, so nothing else on the
    * panel is rebuilt and no focus is disturbed. */
   function refresh() {
-    if (!context) { return; }
     var value = mount.querySelector('.wb-tile-attention .wb-tile-value');
     if (value) { value.textContent = String(pendingRecords()); }
-  }
-
-  function needsServing() {
-    say('The run summary needs this page to be served before it can load.');
-  }
-
-  function showError(error) {
-    say('The run summary could not be read. ' + error.message);
   }
 
   return {
     render: render,
     refresh: refresh,
-    needsServing: needsServing,
-    showError: showError
+    showMessage: showMessage
   };
 })();

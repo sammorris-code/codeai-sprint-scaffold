@@ -95,7 +95,10 @@ window.QueueActions = (function () {
     var panel = document.getElementById('run-diff');
     panel.textContent = 'Reading the comparison…';
 
-    S.load('run-diff')
+    S.load('run-diff', {
+      runId: context.run.id,
+      againstRunId: context.run.previous_run_id
+    })
       .then(renderDiff)
       .catch(function (error) {
         panel.textContent = 'The comparison could not be read. ' + error.message;
@@ -112,6 +115,7 @@ window.QueueActions = (function () {
   // ---- The row ----------------------------------------------------------
 
   function render(ctx) {
+    if (!ctx.run) { return; }
     context = ctx;
     mount.innerHTML = '';
 
@@ -145,23 +149,15 @@ window.QueueActions = (function () {
     mount.appendChild(diffPanel);
   }
 
-  function hide(message) {
+  /* No run, nothing to save or compare. The reason is already on screen in
+   * the run panel, so this one just empties rather than repeating it. */
+  function showMessage() {
+    context = null;
     mount.innerHTML = '';
-    mount.appendChild(el('p', 'wb-note', message));
-  }
-
-  function needsServing() {
-    hide('Saving and comparing need this page to be served.');
-  }
-
-  function showError(error) {
-    hide('These actions are unavailable: the run could not be read. ' +
-         error.message);
   }
 
   return {
     render: render,
-    needsServing: needsServing,
-    showError: showError
+    showMessage: showMessage
   };
 })();
