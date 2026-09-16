@@ -5,7 +5,7 @@
   "description": "One standards document. The identity trio is required and has no default.",
   "type": "object",
   "required": ["id", "framework", "standard_set", "set_type", "framework_year",
-               "title", "standard_count", "boundary_provenance", "publishable"],
+               "title", "standard_count", "boundary_provenance", "all_boundaries_checked"],
   "additionalProperties": false,
   "properties": {
     "id": {"type": "integer"},
@@ -22,7 +22,7 @@
     "scope": {"type": ["string", "null"]},
     "standard_count": {"type": "integer", "minimum": 0},
     "boundary_provenance": {"enum": ["source", "drafted", "drafted+reviewed"]},
-    "publishable": {"type": "boolean",
+    "all_boundaries_checked": {"type": "boolean",
       "description": "Computed. True only when provenance is drafted+reviewed."},
     "schema_notes": {"type": ["string", "null"]},
     "supersedes": {"type": ["integer", "null"]},

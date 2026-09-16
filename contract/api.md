@@ -44,14 +44,15 @@ Fixture: `standards-sets.json`, and `standards-sets-empty.json` for day one.
   "title": "Demo Computer Science Standards",
   "standard_count": 12,
   "boundary_provenance": "drafted",
-  "publishable": false,
+  "all_boundaries_checked": false,
   "reviewed_by": null,
   "reviewed_on": null,
   "created_at": "2026-09-15T10:00:00Z"
 }], "total": 1}
 ```
 
-`publishable` is computed: true when `boundary_provenance` is `drafted+reviewed`.
+`all_boundaries_checked` is computed: true when `boundary_provenance` is
+`drafted+reviewed`.
 The interface reads this one field. It never re-derives the rule.
 
 **It no longer gates publishing**, despite the name. Publishing needs an approved
@@ -116,7 +117,7 @@ Fixture: `boundary-queue.json`.
 
 `verdict` is `accept` or `edit`; an `edit` carrying no edits is a `422`. When
 every standard in the set has a verdict, **the set flips to `drafted+reviewed`
-and `publishable` becomes true.** Only this endpoint can cause that flip, and
+and `all_boundaries_checked` becomes true.** Only this endpoint can cause that flip, and
 that flip is what lets results reach a district.
 
 Every verdict is written to `review_event` with the actor.

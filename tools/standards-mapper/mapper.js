@@ -93,7 +93,7 @@
           return;
         }
 
-        var unchecked = sets.filter(function (set) { return !set.publishable; }).length;
+        var unchecked = sets.filter(function (set) { return !set.all_boundaries_checked; }).length;
         say(count(sets.length, 'standards set') + ', ' +
             count(courses.length, 'course') + '. ' +
             (unchecked

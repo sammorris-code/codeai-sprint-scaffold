@@ -114,7 +114,7 @@ with TestClient(main.app) as c:
     check("returns 201", r.status_code == 201, r.text[:160])
     r_ingest = r
     set_id = r.json()["id"]
-    check("the set is not publishable yet", r.json()["publishable"] is False)
+    check("the set is not all_boundaries_checked yet", r.json()["all_boundaries_checked"] is False)
     check("its boundaries are marked drafted",
           r.json()["boundary_provenance"] == "drafted")
     check("the response reports what the run actually cost",
@@ -361,11 +361,11 @@ with TestClient(main.app) as c:
     print("\nRecording a boundary verdict")
     q = c.get(f"/api/standards-sets/{set_id}/boundary-queue").json()
     check("every standard awaits a verdict", q["remaining"] == 14, str(q["remaining"]))
-    check("no boundary has been checked yet", q["set"]["publishable"] is False)
+    check("no boundary has been checked yet", q["set"]["all_boundaries_checked"] is False)
 
     r = c.get("/api/standards-sets").json()
     this = [s for s in r["items"] if s["id"] == set_id][0]
-    check("and so does the registry", this["publishable"] is False)
+    check("and so does the registry", this["all_boundaries_checked"] is False)
 
     ids = [i["standard_id"] for i in q["items"]]
     for n, sid in enumerate(ids[:-1], 1):
@@ -373,18 +373,18 @@ with TestClient(main.app) as c:
                json={"verdict": "accept", "actor": "test@example.invalid"})
     mid = c.get(f"/api/standards-sets/{set_id}/boundary-queue").json()
     check("13 checked leaves 1 remaining", mid["remaining"] == 1, str(mid["remaining"]))
-    check("some checked is not all checked", mid["set"]["publishable"] is False,
+    check("some checked is not all checked", mid["set"]["all_boundaries_checked"] is False,
           "one unchecked boundary must hold the whole set back")
 
     r = c.post(f"/api/standards/{ids[-1]}/boundary-verdict",
                json={"verdict": "edit",
                      "edited_includes": ["A reviewer rewrote this one."],
                      "actor": "test@example.invalid", "reason": "too narrow"})
-    check("the last verdict completes the set", r.json()["set_now_publishable"] is True,
+    check("the last verdict completes the set", r.json()["all_boundaries_checked"] is True,
           r.text[:120])
     final = c.get(f"/api/standards-sets/{set_id}/boundary-queue").json()
     check("nothing remains", final["remaining"] == 0)
-    check("every boundary is now checked", final["set"]["publishable"] is True)
+    check("every boundary is now checked", final["set"]["all_boundaries_checked"] is True)
     check("its provenance reads drafted+reviewed",
           final["set"]["boundary_provenance"] == "drafted+reviewed")
 

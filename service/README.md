@@ -127,7 +127,9 @@ curl -X POST http://localhost:8000/api/standards-sets \
 ```
 
 **3. Check the boundaries.** `GET /api/standards-sets/{id}/boundary-queue`, then
-a verdict on each. When the last one has a verdict the set becomes publishable.
+a verdict on each. When the last one has a verdict, `all_boundaries_checked`
+turns true. Nothing waits on it - publishing needs an approved run and nothing
+else. See `contract/REVIEW-DESIGN.md`.
 Nothing else can cause that.
 
 ### What is deterministic, and what is not
@@ -395,7 +397,9 @@ a branch only some students take.
 
 **A rejection needs a reason.** A rejection with no reason teaches nobody.
 
-**`publishable` is computed, never stored.** One rule, one place.
+**`all_boundaries_checked` is computed, never stored.** One rule, one place.
+It reports whether every boundary in the set has been checked; it does not gate
+publishing.
 
 ---
 

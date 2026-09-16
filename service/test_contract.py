@@ -90,7 +90,7 @@ check("count matches", api["total"] == fixture["total"],
       f"api {api['total']} vs fixture {fixture['total']}")
 for a, f in zip(api["items"], fixture["items"]):
     for key in ("framework", "standard_set", "set_type", "framework_year",
-                "title", "standard_count", "boundary_provenance", "publishable"):
+                "title", "standard_count", "boundary_provenance", "all_boundaries_checked"):
         check(f"{f['standard_set']}.{key}", a[key] == f[key],
               f"api {a[key]!r} vs fixture {f[key]!r}")
 

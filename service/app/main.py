@@ -59,7 +59,7 @@ SET_COLUMNS = """
     id, framework, standard_set, set_type, framework_year, title, source, scope,
     standard_count, boundary_provenance, schema_notes, supersedes, superseded_by,
     reviewed_by, reviewed_on, created_at,
-    (boundary_provenance = 'drafted+reviewed') AS publishable
+    (boundary_provenance = 'drafted+reviewed') AS all_boundaries_checked
 """
 
 
@@ -67,8 +67,13 @@ SET_COLUMNS = """
 def list_standards_sets(framework: str | None = None, set_type: str | None = None):
     """The registry. This is what replaced the hardcoded state list on the page.
 
-    publishable is computed here, from boundary_provenance, and never stored.
-    One rule, one place. No interface re-derives it.
+    all_boundaries_checked is computed here, from boundary_provenance, and
+    never stored. One rule, one place. No interface re-derives it.
+
+    It reports whether a person has checked every boundary in this set. It
+    does not decide whether anything may be published - that needs an
+    approved run and nothing else. This field was called `publishable` until
+    the set-level gate was removed, and the name outlived what it decided.
     """
     items = rows(f"""SELECT {SET_COLUMNS} FROM standards_set
                      WHERE (%(framework)s::text IS NULL OR framework = %(framework)s)
@@ -264,7 +269,7 @@ async def ingest(file: UploadFile = File(...),
             "framework_year": identity.framework_year,
             "standard_count": c.extracted_count,
             "boundary_provenance": "drafted",
-            "publishable": False,
+            "all_boundaries_checked": False,
             "nearest_csta": {
                 "with_analog": with_analog,
                 "no_analog": len(drafted) - with_analog,
@@ -317,7 +322,7 @@ def boundary_verdict(standard_id: int, v: Verdict):
     """A person's verdict on one drafted boundary.
 
     When every standard in the set has one, the set flips to drafted+reviewed
-    and becomes publishable. That flip is the release gate, and only this
+    and all_boundaries_checked turns true. That is a report, not a gate: only this
     endpoint can cause it.
     """
     std = one("SELECT id, set_id, identifier FROM standard WHERE id = %(id)s",
@@ -360,7 +365,7 @@ def boundary_verdict(standard_id: int, v: Verdict):
     return {"standard_id": standard_id, "identifier": std["identifier"],
             "boundary_provenance": "drafted+reviewed",
             "remaining_in_set": remaining,
-            "set_now_publishable": remaining == 0}
+            "all_boundaries_checked": remaining == 0}
 
 
 # ---------------------------------------------------------------------------
