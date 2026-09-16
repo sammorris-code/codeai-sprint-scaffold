@@ -324,8 +324,47 @@ lessons/<unit>/NN-<slug>.md        readable lesson plan
 lessons/<unit>/NN-<slug>.json      lesson-plan record
 levels/<unit>/NN-<slug>.levels.md    student instructions, in student order
 levels/<unit>/NN-<slug>.levels.json  student-instruction record
+distilled/<unit>/NN-<slug>.actions.md    what students actually do
+distilled/<unit>/NN-<slug>.actions.json  the same, machine-readable
 .cache/               the level-name index, keyed by commit. Safe to delete.
 ```
+
+### The distilled layer
+
+Alignment is rated on one thing: the observable student action, at the
+cognitive verb the standard demands. A lesson plan does not present that — it
+presents teacher choreography and topic prose, and the authored objectives are
+too general to say what a student produces. The distilled record converts a
+lesson into the unit of judgement the rating rules already use.
+
+**The primary signal is the level type, not a heading.** The first design read
+actions from "Do This" headings. Measured across all 147 taught AIF lessons:
+
+| Signal | Lessons reached | Student words missed |
+|---|---|---|
+| "Do This" only | 70% | 24.8% |
+| + "Directions:" | 71% | 22.8% |
+| + numbered steps | 84% | 7.5% |
+| + imperative heading | 85% | 6.8% |
+| **+ the level type** | **99%** | **0.6%** |
+
+A heading is a writing convention and an author can change it without telling
+anyone. A level type is authored metadata: a `pythonlab` level means the student
+writes Python whatever the prose says. Prose markers are still read, but only to
+say *what* happens inside a level the type already proved is active. Every run
+prints both numbers, so if the signal ever stops working you find out.
+
+**It concludes nothing.** An objective is marked *looks supported* or *check
+this*, never *met*. Where the tool cannot tell, it writes the question down.
+
+It is written on every extraction rather than behind a flag, because it is
+derived and a flag is a thing somebody forgets. **It must never replace the
+corpus.** A distilled step is a pointer to evidence; the student screen is the
+evidence.
+
+On the AIF corpus it reaches 145 of 148 taught lessons, flags the 7 alternate
+progressions, and records 414 student-written against 82 AI-written code
+levels — as a fact for the framework to rule on, not a judgement.
 
 Both halves run in one command. They used to be two, and a corpus with lesson
 plans but no student instructions is the exact undercount this pipeline exists

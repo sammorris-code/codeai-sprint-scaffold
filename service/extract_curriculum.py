@@ -100,6 +100,18 @@ def main(argv=None):
         label = key.replace("_", " ").capitalize()
         print(f"  {label:34} {value:>10,}")
 
+    d = manifest["distilled"]
+    print("\nDistilled layer")
+    for key, value in d.items():
+        label = key.replace("_", " ").capitalize()
+        print(f"  {label:34} {value:>10,}")
+    if d["taught_lessons"]:
+        # The number that says whether the primary signal is still working.
+        reach = 100 * d["with_a_student_action"] / d["taught_lessons"]
+        prose = 100 * d["reached_by_a_prose_marker_alone"] / d["taught_lessons"]
+        print(f"\n  Taught lessons with an action     {reach:>9.0f}%")
+        print(f"  ...that a prose heading would find{prose:>9.0f}%")
+
     warnings = result["warnings"]
     if warnings:
         kinds = {}
