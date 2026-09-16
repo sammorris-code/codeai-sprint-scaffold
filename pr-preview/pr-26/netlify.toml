@@ -1,0 +1,7 @@
+# Static site, no build step.
+# Deploy previews are on by default, which is the reason to use Netlify here:
+# every pull request gets its own URL posted as a comment on the PR.
+
+[build]
+  publish = "."
+  command = ""
