@@ -17,9 +17,11 @@ fixtures and then pointed at this service with one line changed.
 from contextlib import asynccontextmanager
 
 import json
+import pathlib
 
 from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .db import pool, rows, one, execute
@@ -806,3 +808,27 @@ def public_coverage(set_id: int, course_id: int):
 @app.get("/health")
 def health():
     return {"ok": one("SELECT 1 AS ok")["ok"] == 1}
+
+
+# ---------------------------------------------------------------------------
+# The site, from the same origin as the API. Mounted last, so every route above
+# still wins - a mount at "/" only catches what nothing else matched.
+# ---------------------------------------------------------------------------
+#
+# This is not convenience. Basic auth at the proxy is the only authentication
+# in front of this service, and cross-origin it cannot work: the browser sends
+# a preflight OPTIONS before every write, preflights carry no credentials by
+# design, the proxy answers 401, and the write fails as a CORS error naming
+# nothing. The page cannot send the header itself either - that would mean a
+# password in loader.js, in a public repository.
+#
+# Same origin, there is no preflight at all, and the browser attaches the
+# credentials it already holds for this host. loader.js already asks for that
+# with `credentials: 'same-origin'`.
+#
+# The tool lands at /tools/standards-mapper/ and reaches the API at ../../api,
+# which stays relative - a root-absolute path would break the PR previews that
+# publish this same tree under pr-preview/pr-<number>/.
+SITE = pathlib.Path(__file__).resolve().parents[2] / "site"
+if SITE.is_dir():
+    app.mount("/", StaticFiles(directory=SITE, html=True), name="site")

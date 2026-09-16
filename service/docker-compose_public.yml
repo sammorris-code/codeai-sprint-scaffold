@@ -47,11 +47,13 @@
 #    api joins Traefik's network and publishes nothing, so that route is the
 #    only way to reach it.
 #
-# 7. Point the interface at it. In tools/standards-mapper/loader.js, the SOURCE
-#    block becomes:
+# 7. Use the interface at https://<your host>/tools/standards-mapper/. The
+#    service serves the site as well as the API, so the tool is already there
+#    and already shares the API's origin - which is what lets basic auth work
+#    at all. In loader.js the SOURCE block becomes:
 #
 #      mode: 'api',
-#      base: 'https://standards.your-nas.example/api',
+#      base: '../../api',
 #
 # ---------------------------------------------------------------------------
 # Three deliberate differences from the local file
@@ -170,8 +172,15 @@ services:
 
 networks:
   # Traefik's own network, created by whatever brings Traefik up. `external`
-  # means compose expects to find it rather than making its own - if the name
-  # differs on your NAS, change it here.
+  # means compose expects to find it rather than making one, so the name has to
+  # match what is already there or you get:
+  #
+  #   network traefik declared as external, but could not be found
+  #
+  # It is rarely called `traefik`. Find yours in the Docker UI's network list -
+  # it is the one with no stack against it - and name it in .env, not here:
+  #
+  #   TRAEFIK_NETWORK=t2_proxy
   #
   # Only the api joins it. The database stays on `default`, reachable from the
   # api and from nothing else.
