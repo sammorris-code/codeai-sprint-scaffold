@@ -17,10 +17,11 @@ http:
         - websecure
       service: standards-api
       middlewares:
-        # Pick ONE of the two below. Read the note on CORS first - it decides
-        # which one actually works for you.
-        - standards-allowlist
-        # - standards-auth
+        # Covers the tool and the API together, because the service serves
+        # both and they share an origin. Swap to standards-allowlist if you
+        # would rather gate by address than by password.
+        - standards-auth
+        # - standards-allowlist
       tls: {}
       # If Traefik issues your certificates rather than you supplying them:
       # tls:
@@ -35,9 +36,8 @@ http:
           - url: "http://standards-api:8000"
 
   middlewares:
-    # An address allowlist. Preferred when the people using this have stable
-    # addresses, because it does not interfere with browser preflight requests
-    # the way basic auth does.
+    # An address allowlist, if the people using this have stable addresses and
+    # you would rather not hand out a password.
     standards-allowlist:
       ipAllowList:
         sourceRange:
@@ -56,28 +56,35 @@ http:
           - "reviewer:$2y$05$REPLACE.THIS.WITH.A.REAL.BCRYPT.HASH"
 
 # ---------------------------------------------------------------------------
-# Basic auth and the browser: read this before choosing
+# Why basic auth works here, when it usually would not
 # ---------------------------------------------------------------------------
 #
-# If the review tool is served from a DIFFERENT origin than this API - GitHub
-# Pages calling your NAS, say - the browser sends a preflight OPTIONS request
-# before each write. Preflights carry no credentials by design, so basic auth
-# answers 401, the preflight fails, and every write in the tool breaks with a
-# CORS error that looks nothing like an authentication problem.
+# Put basic auth in front of an API that a page on ANOTHER origin calls, and
+# every write breaks. The browser sends a preflight OPTIONS first, preflights
+# carry no credentials by design, basic auth answers 401, and the write fails
+# as a CORS error that looks nothing like an authentication problem. The page
+# cannot send the header itself either - that would mean a password committed
+# to a public repository.
 #
-# Two ways out, in order of preference:
+# It works here because the service serves the review tool as well as the API,
+# so there is only one origin:
 #
-# 1. Use the allowlist above instead of basic auth. Nothing interferes with
-#    preflight, and on a NAS with known users it is usually enough.
+#   https://standards.your-nas.example/tools/standards-mapper/   the tool
+#   https://standards.your-nas.example/api/...                   the API
 #
-# 2. Serve the tool from this same host, so there is no cross-origin request
-#    and no preflight. Add a second router on the same Host rule for path `/`
-#    pointing at a static file container, keep `/api` on this one, and put
-#    basic auth on both. Then set loader.js to base: '/api'.
+# The viewer is prompted once when they open the tool, and the browser attaches
+# those credentials to every call the page makes afterwards. No preflight, no
+# password in the repository, one middleware covering both.
 #
-# Whichever you choose, app/main.py still has allow_origins=["*"]. That is an
-# open door the moment this is reachable, and it is what the middleware above
-# is standing in for.
+# Two things this depends on, so do not undo them casually:
+#
+#   - loader.js uses base '../../api', a relative path. An absolute URL to the
+#     same host would still be same-origin, but a different HOST - a laptop
+#     checkout, or the GitHub Pages copy - calling this one would not be, and
+#     is the broken case above.
+#   - app/main.py mounts the site at "/". If that mount is removed, the tool
+#     has to be served from somewhere else, and this whole arrangement is back
+#     to being cross-origin.
 #
 # ---------------------------------------------------------------------------
 # If Traefik is not a container

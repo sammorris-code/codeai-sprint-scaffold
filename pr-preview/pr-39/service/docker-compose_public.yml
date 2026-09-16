@@ -47,11 +47,13 @@
 #    api joins Traefik's network and publishes nothing, so that route is the
 #    only way to reach it.
 #
-# 7. Point the interface at it. In tools/standards-mapper/loader.js, the SOURCE
-#    block becomes:
+# 7. Use the interface at https://<your host>/tools/standards-mapper/. The
+#    service serves the site as well as the API, so the tool is already there
+#    and already shares the API's origin - which is what lets basic auth work
+#    at all. In loader.js the SOURCE block becomes:
 #
 #      mode: 'api',
-#      base: 'https://standards.your-nas.example/api',
+#      base: '../../api',
 #
 # ---------------------------------------------------------------------------
 # Three deliberate differences from the local file

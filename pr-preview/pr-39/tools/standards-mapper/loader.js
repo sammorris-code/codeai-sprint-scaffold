@@ -27,7 +27,24 @@ window.StandardsSource = (function () {
 
     // ---- Reading the API. Swap mode to 'api' and set the base. ----------
     // mode: 'api',
+    //
+    // Against a service on your own machine:
     // base: 'http://localhost:8000/api',
+    //
+    // Against the hosted one, where this page is served BY that service and
+    // so shares its origin:
+    // base: '../../api',
+    //
+    // Relative, not '/api'. A leading slash escapes pr-preview/pr-<number>/
+    // and loads the live site's data instead - the preview then shows the
+    // wrong thing rather than failing.
+    //
+    // Same origin is not a nicety there. The hosted service sits behind basic
+    // auth, and cross-origin the browser's preflight OPTIONS carries no
+    // credentials, gets a 401, and every write fails as a CORS error naming
+    // nothing. Same origin there is no preflight, and the credentials the
+    // browser already holds are sent - which is what `credentials:
+    // 'same-origin'` below is for.
 
     paths: {
       fixtures: {
