@@ -148,6 +148,16 @@ Fixture: `courses.json`. Note the unit whose `displayed_number` is empty.
 ### `GET /api/lessons?course_id=`
 Fixture: `lessons.json`. Note the capstone, whose `lesson_token` is not a number.
 
+Ordered by the unit's position in the course, then the lesson's own position.
+`absolute_position` is absolute *within a unit*, so ordering by it alone
+interleaves the units. A unit belongs to more than one course, so each lesson
+is returned once whether or not a course is named.
+
+### `GET /api/lessons/{id}`
+One lesson, whole: the same identity fields plus `plan` and `levels`. The list
+above returns a summary because a course is 190 lessons and the nested records
+are large. Read by `tools/corpus-browser/`.
+
 ---
 
 ## Runs and review

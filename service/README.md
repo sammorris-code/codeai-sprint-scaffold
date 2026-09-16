@@ -397,6 +397,26 @@ as "deleted upstream". The disappearance check is limited to units the snapshot
 actually contains — otherwise the first AIF-only extraction would mark every
 AID claim stale.
 
+### Looking at it
+
+`tools/corpus-browser/` is a page for reading the corpus: pick a corpus, then a
+curriculum, then a lesson, and see everything the extraction holds for it — the
+plan a teacher reads and the screens a student reads, in the order a student
+meets them, with the raw record underneath.
+
+It reads this service and computes nothing, so what it shows is what an
+alignment run would see. That is the point of it: the choice branches, the
+lessons with no plan, the levels with no words and the answer keys nobody
+outside a verified teacher account can open are all visible rather than
+inferred.
+
+Open `tools/corpus-browser/index.html` and, if the service is not on
+`http://localhost:8000/api`, put its address in the field at the top.
+
+**It needs `GET /api/lessons/{id}`**, which is newer than the running image. If
+lessons list but none will open, rebuild: `docker compose -f
+service/docker-compose.yml up --build`.
+
 ### Testing it
 
 ```bash
