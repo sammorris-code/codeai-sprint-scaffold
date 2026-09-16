@@ -372,6 +372,15 @@ pages of explanation.
 instead of `'…'`. A parser that knows only `'` and `"` drops the question and
 every answer option. 30 AIF levels.
 
+**A unit can teach the same lesson twice.** `foundations-of-ai-programming-2026`
+has a lesson group called *Alternate Level Progressions (Console Only)* holding
+a second version of seven lessons the Content group already has — loops,
+conditionals, functions, objects, decomposition, debugging. 63 levels, 4,161
+student words. A student does one progression or the other. Without
+`lesson_group_name` those seven look like extra coverage, and crediting both
+double-counts in exactly the concept areas a CS framework weights most heavily.
+It is a choice branch one scale up.
+
 The last two were worth 13,700 student words, 11% of the corpus. `warnings.json`
 and the totals exist so the next one of these is visible rather than inferred.
 
