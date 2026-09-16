@@ -186,9 +186,9 @@ async def ingest(file: UploadFile = File(...),
              f"{identity.framework_year} is already in the store as set "
              f"{existing['id']}.", "standard_set")
 
-    spend = {}
+    spend, gate = {}, {}
     try:
-        drafted = draft_boundaries(c.standards, usage=spend)
+        drafted = draft_boundaries(c.standards, usage=spend, gate=gate)
     except NoCredentials as e:
         fail(503, "boundary_drafting_unavailable", str(e))
     except BoundaryRefused as e:
@@ -269,10 +269,15 @@ async def ingest(file: UploadFile = File(...),
                 "with_analog": with_analog,
                 "no_analog": len(drafted) - with_analog,
                 "percent_with_analog": round(100 * with_analog / drafted_count),
-                "note": "An analog is only recorded when its boundary wording "
-                        "was worth adapting. Most state standards have none, so "
-                        "a high percentage here is a sign of stretching, not of "
-                        "good coverage.",
+                "note": "An analog is only recorded when the drafter quoted the "
+                        "CSTA wording it adapted and that quote survived the "
+                        "checks in ingestion/analogs.py. Most state standards "
+                        "have no analog, so a high percentage here is a sign of "
+                        "stretching, not of good coverage.",
+                # Reported so a gate that is too strict can be told apart from a
+                # drafter that stopped stretching. Both lower the percentage
+                # above; they call for opposite responses.
+                "rejected": gate or {"dropped": 0, "reasons": {}, "examples": []},
             },
             "cost": actual_cost(spend) if spend else None,
             "warnings": c.warnings,
