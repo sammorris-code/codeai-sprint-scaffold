@@ -1,0 +1,315 @@
+/* ==========================================================================
+   theme.css — the CodeAI look, for any page that links it
+
+   layout.css does structure; this file does brand. The two are kept apart on
+   purpose: every page depends on layout.css, so growing it makes a file that
+   everyone has to merge against. This one is additive and safe to adopt one
+   page at a time.
+
+   LINKED FROM: tools/standards-mapper/ so far, and nothing else yet. Adding
+   it to another page is one line in that page's <head>, after layout.css:
+
+       <link rel="stylesheet" href="../../css/theme.css">
+
+   Nothing here targets a tool-specific class, so a page can adopt it without
+   its own stylesheet changing.
+
+   Two brand rules are load-bearing and easy to undo by accident:
+
+     - The colours below ARE the palette. Do not mix a new one. If something
+       needs a colour that is not here, it needs a conversation, not a hex
+       code.
+     - Purple leads. Orange, pink and green are semantic accents - they mean
+       "needs a person", "something is wrong" and "done" respectively. They
+       are never decoration, and no page should show all four families at
+       once.
+   ========================================================================== */
+
+/* --- Brand fonts --------------------------------------------------------
+   Variable TTFs, served from this repository rather than a CDN. Three
+   reasons: the pages open straight from a file path and a CDN font would
+   silently not load there; the hosted box sits behind basic auth, where a
+   third-party request is one more thing to debug; and a font that ships with
+   the site cannot change under us.
+
+   Relative paths, resolved against THIS file. Never root-absolute - a
+   leading slash escapes pr-preview/pr-<number>/ and loads the live site's
+   copy instead. */
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('../assets/fonts/SpaceGrotesk-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('../assets/fonts/Geist-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('../assets/fonts/Geist-Italic-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* --- Tokens ------------------------------------------------------------- */
+
+:root {
+  /* The palette, in full. Light · Mid · Primary · Dark. */
+  --purple-light: #E4E2F8;
+  --purple-mid: #ACA8EA;
+  --purple: #4C42CF;
+  --purple-dark: #1F1976;
+
+  --blue-light: #D5EFFF;
+  --blue-mid: #6FCAFF;
+  --blue: #0099F3;
+  --blue-dark: #06338D;
+
+  --green-light: #CCF1D0;
+  --green-mid: #7CDB87;
+  --green: #34BD43;
+  --green-dark: #003F25;
+
+  --orange-light: #FFE3CE;
+  --orange-mid: #FFA868;
+  --orange: #F46800;
+  --orange-dark: #611D00;
+
+  --pink-light: #FBDAE8;
+  --pink-mid: #F07FB0;
+  --pink: #E11970;
+  --pink-dark: #7D0C3D;
+
+  --white: #FFFFFF;
+  --black: #000000;
+
+  /* Roles. Reach for these, not the palette, so a page cannot drift. */
+  --brand: var(--purple);
+  --ink: var(--black);
+
+  /* Secondary text. Black at reduced opacity rather than a grey, because
+     there is no grey in the palette and inventing one is how a palette
+     stops being one. 0.66 clears AA against white by a wide margin. */
+  --ink-quiet: rgba(0, 0, 0, 0.66);
+
+  --surface: var(--white);
+  --surface-tint: var(--purple-light);
+  --line: var(--purple-light);
+  --line-strong: var(--purple-mid);
+
+  /* The brand draws in rounded squares - it is what the logo is built from -
+     so everything on the page is rounded, and consistently. */
+  --radius-lg: 12px;
+  --radius: 8px;
+  --radius-pill: 999px;
+
+  --font-display: 'Space Grotesk', 'Noto Sans', system-ui, sans-serif;
+  --font-body: 'Geist', 'Noto Sans', system-ui, sans-serif;
+}
+
+/* --- Base --------------------------------------------------------------- */
+
+body {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Space Grotesk for anything that announces something, Geist for anything
+   you read at length. Tracking is tightened on display type the way the
+   brand scale specifies; leading tightens as the size grows. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.05;
+  margin: 0 0 0.5rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+h3 {
+  font-size: 1.1875rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+h4 {
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+a {
+  color: var(--purple-dark);
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--purple);
+}
+
+/* --- Controls ------------------------------------------------------------
+   Buttons and inputs are the brand's most-touched surface, so they carry it
+   rather than the browser's defaults.
+
+   Every control keeps a visible focus ring. Plain :focus, not
+   :focus-visible: several screens here move focus themselves after an
+   action, and a browser's :focus-visible heuristic can decide a focus() call
+   made inside a click handler is not keyboard use and hide the ring exactly
+   when somebody needs it. */
+
+button,
+select,
+input[type="text"],
+input[type="search"],
+input[type="email"] {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.4;
+  border-radius: var(--radius);
+  /* Primary purple, not the mid tint. A control's edge is the only thing
+     that says it is a control, so WCAG asks for 3:1 against the page - and
+     #ACA8EA on white is 2.2:1. The mid tint stays for dividers and dashed
+     containers, where the border carries no information. */
+  border: 1px solid var(--purple);
+  padding: 0.4375rem 0.75rem;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+button {
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--purple);
+  border-color: var(--purple);
+  color: var(--white);
+}
+
+button:hover:not(:disabled) {
+  background: var(--purple-dark);
+  border-color: var(--purple-dark);
+}
+
+/* The quieter of the two. A row of five equally loud buttons tells a
+   reviewer nothing about which one they came for. */
+button.quiet {
+  background: var(--surface);
+  border-color: var(--purple);
+  color: var(--purple-dark);
+}
+
+button.quiet:hover:not(:disabled) {
+  background: var(--purple-light);
+  border-color: var(--purple);
+  color: var(--purple-dark);
+}
+
+button:disabled {
+  background: var(--purple-light);
+  border-color: var(--purple-light);
+  color: var(--ink-quiet);
+  cursor: not-allowed;
+}
+
+select:hover,
+input[type="text"]:hover {
+  border-color: var(--purple-dark);
+}
+
+:focus {
+  outline: 3px solid var(--purple-dark);
+  outline-offset: 2px;
+}
+
+label {
+  font-weight: 500;
+}
+
+/* --- Brand chrome --------------------------------------------------------
+   The purple bar with the logo in it. A page opts in by putting the markup
+   at the top of <body>; nothing here fires without it.
+
+   The logo is the supplied file, never a typed-out "CODE AI" and never a
+   shape that resembles it. White knockout over colour, black solid over
+   white - those are the only two, and the bar is purple, so it is the
+   white one. */
+
+.brand-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  background: var(--purple);
+  border-radius: var(--radius-lg);
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.brand-bar__logo {
+  display: block;
+  height: 1.125rem;
+  width: auto;
+}
+
+.brand-bar__context {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--white);
+}
+
+.brand-bar__tag {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--white);
+  border: 1px solid var(--purple-mid);
+  border-radius: var(--radius-pill);
+  padding: 0.125rem 0.625rem;
+}
+
+/* --- Shared pieces ------------------------------------------------------- */
+
+.site-footer {
+  border-top: 1px solid var(--line);
+}
+
+.breadcrumb {
+  font-size: 0.875rem;
+  color: var(--ink-quiet);
+}
+
+.meta dt {
+  color: var(--ink-quiet);
+}
+
+.data-table th {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+.data-table th,
+.data-table td {
+  border-bottom: 1px solid var(--line);
+}

@@ -1,0 +1,504 @@
+/* style.css — Standards Mapper only.
+ *
+ * This file is linked from this page alone, so nothing here can collide with
+ * another team's work. The brand itself — fonts, palette, buttons, the purple
+ * bar — lives in css/theme.css, which any page can link. What is left here is
+ * the workbench: the parts of this screen no other tool has.
+ *
+ * Colour carries meaning on this page, so it is worth saying what each family
+ * means before changing any of it:
+ *
+ *   Purple  the brand, and anything neutral — cards, pills, structure.
+ *   Orange  a person is needed. The count still to check, and the two
+ *           warnings a reviewer acts on.
+ *   Pink    something is wrong. Totals that do not add up, a claim whose
+ *           lesson changed underneath it, a missing rejection reason.
+ *   Green   done. A run that has been approved and is live.
+ *
+ * Purple leads and the rest are accents. Only three families are ever on
+ * screen at once: green replaces pink-and-orange's urgency once a run is
+ * approved and the queue is behind you.
+ *
+ * Nothing here is carried by colour alone. Every pill and banner says in
+ * words what it means, because the two warnings this screen exists to
+ * surface — "may not go deep enough" and "close match, likely not a real
+ * one" — have to reach a reviewer who cannot tell the two tints apart.
+ */
+
+/* --- Sample-data marker -------------------------------------------------
+   This is an internal tool reading invented data. Somebody must be able to
+   tell at a glance that a number on this screen is not a claim about a real
+   course. Do not remove this when real data arrives; change what it says. */
+
+.demo-marker {
+  border: 2px dashed var(--line-strong);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin: 0 0 1.5rem;
+  font-weight: 500;
+  color: var(--purple-dark);
+  background: var(--surface-tint);
+}
+
+.demo-marker p {
+  margin: 0;
+}
+
+.demo-marker .detail {
+  font-weight: 400;
+  margin-top: 0.25rem;
+}
+
+/* --- Where the data came from ------------------------------------------ */
+
+.source-status {
+  margin: 0 0 1rem;
+  color: var(--ink-quiet);
+}
+
+/* --- The page needs serving -------------------------------------------- */
+
+.needs-serving {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+
+.needs-serving > :first-child { margin-top: 0; }
+.needs-serving > :last-child { margin-bottom: 0; }
+
+.needs-serving pre {
+  overflow-x: auto;
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  background: var(--surface-tint);
+  border: 1px solid var(--line);
+}
+
+.needs-serving code {
+  white-space: pre;
+}
+
+/* ==========================================================================
+   The alignment workbench
+   ========================================================================== */
+
+.wb-note {
+  color: var(--ink-quiet);
+  margin: 0.5rem 0;
+}
+
+/* --- Run summary -------------------------------------------------------- */
+
+.wb-run-head {
+  margin-bottom: 1rem;
+}
+
+.wb-run-title {
+  margin: 0 0 0.25rem;
+}
+
+.wb-run-detail {
+  margin: 0;
+  color: var(--ink-quiet);
+  font-size: 0.9375rem;
+}
+
+.wb-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.wb-tile {
+  background: var(--surface-tint);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.875rem;
+}
+
+.wb-tile-label {
+  margin: 0 0 0.125rem;
+  font-size: 0.8125rem;
+  color: var(--purple-dark);
+}
+
+/* Space Grotesk, because these four numbers are the first thing anyone
+   looks at and the brand's display face is what a number should be set in. */
+.wb-tile-value {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--purple-dark);
+}
+
+/* The one tile that is a to-do rather than a fact. */
+.wb-tile-attention {
+  background: var(--orange-light);
+}
+
+.wb-tile-attention .wb-tile-label,
+.wb-tile-attention .wb-tile-value {
+  color: var(--orange-dark);
+}
+
+/* Both percentages, and the scope note that must never be separated from
+   them. See the contract: a percentage without its scope is not a fact. */
+.wb-percents {
+  margin-bottom: 1rem;
+}
+
+.wb-percent-line {
+  margin: 0 0 0.25rem;
+}
+
+.wb-scope-note,
+.wb-caveat-note {
+  margin: 0.25rem 0 0;
+  font-size: 0.9375rem;
+  color: var(--ink-quiet);
+}
+
+/* --- Banners ------------------------------------------------------------ */
+
+.wb-banner {
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin: 0 0 1rem;
+  border-left: 4px solid transparent;
+}
+
+.wb-banner > :first-child { margin-top: 0; }
+.wb-banner > :last-child { margin-bottom: 0; }
+
+.wb-banner-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.25rem;
+}
+
+.wb-banner-holding {
+  background: var(--purple-light);
+  border-left-color: var(--purple);
+  color: var(--purple-dark);
+}
+
+.wb-banner-published {
+  background: var(--green-light);
+  border-left-color: var(--green);
+  color: var(--green-dark);
+}
+
+.wb-banner-problem {
+  background: var(--pink-light);
+  border-left-color: var(--pink);
+  color: var(--pink-dark);
+}
+
+.wb-banner-aside {
+  margin: 0.5rem 0 0;
+}
+
+/* --- Filter row --------------------------------------------------------- */
+
+#queue-controls {
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+#queue-controls .field {
+  flex: 0 1 16rem;
+}
+
+#queue-controls .check {
+  flex: 0 1 auto;
+  align-self: center;
+  margin: 0;
+}
+
+/* --- Cards -------------------------------------------------------------- */
+
+.wb-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.wb-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.125rem;
+}
+
+.wb-card-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
+}
+
+/* The identifier is the card's name, so it is set in the display face and
+   given a little tracking to keep DEMO-1.A.1 from reading as one word. */
+.wb-ident {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--purple);
+}
+
+.wb-position {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--ink-quiet);
+}
+
+.wb-statement {
+  margin: 0 0 0.75rem;
+}
+
+/* --- Pills -------------------------------------------------------------- */
+
+.wb-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 0.25rem;
+}
+
+.wb-pills:empty {
+  display: none;
+}
+
+.wb-pill {
+  display: inline-block;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  border-radius: var(--radius-pill);
+  padding: 0.0625rem 0.625rem;
+}
+
+.wb-pill-concept,
+.wb-pill-lesson {
+  background: var(--purple-light);
+  color: var(--purple-dark);
+}
+
+.wb-pill-lesson {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+.wb-pill-warn {
+  background: var(--orange-light);
+  color: var(--orange-dark);
+  font-weight: 500;
+}
+
+.wb-pill-done {
+  background: var(--green-light);
+  color: var(--green-dark);
+  font-weight: 500;
+}
+
+/* --- Boundary notes ----------------------------------------------------- */
+
+.wb-boundaries {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.wb-boundaries summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--purple-dark);
+}
+
+.wb-boundaries[open] summary {
+  margin-bottom: 0.25rem;
+}
+
+.wb-boundary-head {
+  font-family: var(--font-display);
+  margin: 0.625rem 0 0.25rem;
+  font-weight: 500;
+}
+
+.wb-boundary-list {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.wb-drafted-note {
+  margin: 0.625rem 0 0;
+  font-size: 0.9375rem;
+  color: var(--ink-quiet);
+}
+
+/* --- Evidence ----------------------------------------------------------- */
+
+.wb-evidence-head {
+  font-family: var(--font-display);
+  margin: 0 0 0.5rem;
+  font-weight: 500;
+}
+
+.wb-record-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.875rem;
+}
+
+.wb-record {
+  border-left: 3px solid var(--line);
+  padding-left: 0.875rem;
+}
+
+.wb-record-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
+}
+
+.wb-record-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+.wb-objective,
+.wb-record-note,
+.wb-warning-detail p {
+  margin: 0.25rem 0;
+  font-size: 0.9375rem;
+  color: var(--ink-quiet);
+}
+
+.wb-warning-detail:empty {
+  display: none;
+}
+
+/* The quoted lesson text the claim rests on. Set apart because it is the one
+   thing on the card a reviewer is being asked to judge. */
+.wb-proof {
+  margin: 0.375rem 0;
+  border-left: 2px solid var(--purple-mid);
+  padding-left: 0.75rem;
+}
+
+.wb-stale {
+  background: var(--pink-light);
+  color: var(--pink-dark);
+  font-weight: 500;
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  margin: 0.375rem 0;
+}
+
+.wb-level {
+  display: block;
+  margin: 0.5rem 0;
+}
+
+.wb-level-fixed {
+  font-weight: 400;
+  color: var(--ink-quiet);
+}
+
+.wb-record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.wb-record-status {
+  margin: 0.25rem 0 0;
+  font-size: 0.9375rem;
+  color: var(--ink-quiet);
+}
+
+.wb-reason {
+  margin: 0.5rem 0;
+}
+
+.wb-reason label {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.wb-reason input[type="text"] {
+  width: 100%;
+  max-width: 28rem;
+}
+
+.wb-error {
+  margin: 0.25rem 0;
+  color: var(--pink-dark);
+  font-weight: 500;
+}
+
+.wb-no-evidence {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  padding: 0.625rem 0.875rem;
+}
+
+.wb-no-evidence > :first-child { margin-top: 0; }
+.wb-no-evidence > :last-child { margin-bottom: 0; }
+
+.wb-no-evidence-label {
+  font-family: var(--font-display);
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+/* --- Comparison to the previous run ------------------------------------- */
+
+.wb-diff:empty {
+  display: none;
+}
+
+.wb-diff {
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.875rem 1rem;
+}
+
+.wb-diff > :first-child { margin-top: 0; }
+
+.wb-diff-group {
+  margin-bottom: 0.75rem;
+}
+
+.wb-diff-head {
+  font-family: var(--font-display);
+  margin: 0 0 0.25rem;
+  font-weight: 500;
+}
+
+/* --- Keyboard focus ------------------------------------------------------
+   theme.css already gives every control a ring. This raises it above a
+   neighbouring card edge, which would otherwise clip the outline where a
+   control sits flush against one. */
+
+#queue-list :focus,
+#queue-controls :focus,
+#queue-actions :focus {
+  position: relative;
+  z-index: 1;
+}
