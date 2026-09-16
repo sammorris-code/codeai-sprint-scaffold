@@ -61,7 +61,389 @@
    costs a ring on a mouse click; hiding it risks a keyboard user losing
    their place, which matters more on a screen built for school districts. */
 
-#queue-list :focus {
+#queue-list :focus,
+#queue-controls :focus,
+#queue-actions :focus {
   outline: 3px solid currentColor;
   outline-offset: 2px;
+}
+
+
+/* ==========================================================================
+   The alignment workbench
+
+   The review screen, built from the prototype in the sprint mockups. Scoped
+   to this page: this file is linked from here and nowhere else.
+
+   Colour is never the only carrier of meaning below. Every pill says what it
+   means in words, because the two warnings a reviewer acts on - "may not go
+   deep enough" and "close match, likely not a real one" - are the whole point
+   of the screen, and a reviewer who cannot tell the two tints apart still has
+   to be able to act on them.
+   ========================================================================== */
+
+:root {
+  --wb-ink: #1F1976;
+  --wb-accent: #4C42CF;
+  --wb-accent-soft: #E4E2F8;
+  --wb-warn: #FFE3CE;
+  --wb-warn-ink: #611D00;
+  --wb-problem: #FBDAE8;
+  --wb-problem-ink: #7D0C3D;
+  --wb-line: #C9C6E8;
+  --wb-quiet: #5A5A6E;
+  --wb-radius: 8px;
+}
+
+.wb-note {
+  color: var(--wb-quiet);
+  margin: 0.5rem 0;
+}
+
+/* --- Run summary -------------------------------------------------------- */
+
+.wb-run-head {
+  margin-bottom: 1rem;
+}
+
+.wb-run-title {
+  margin: 0 0 0.25rem;
+}
+
+.wb-run-detail {
+  margin: 0;
+  color: var(--wb-quiet);
+}
+
+.wb-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.wb-tile {
+  border: 1px solid var(--wb-line);
+  border-radius: var(--wb-radius);
+  padding: 0.75rem 0.875rem;
+}
+
+.wb-tile-attention {
+  background: var(--wb-warn);
+  border-color: var(--wb-warn-ink);
+}
+
+.wb-tile-label {
+  margin: 0 0 0.25rem;
+  color: var(--wb-quiet);
+}
+
+.wb-tile-attention .wb-tile-label,
+.wb-tile-attention .wb-tile-value {
+  color: var(--wb-warn-ink);
+}
+
+.wb-tile-value {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.1;
+}
+
+/* Both percentages, and the scope note that must never be separated from
+   them. See the contract: a percentage without its scope is not a fact. */
+.wb-percents {
+  margin-bottom: 1rem;
+}
+
+.wb-percent-line {
+  margin: 0 0 0.25rem;
+}
+
+.wb-scope-note,
+.wb-caveat-note {
+  margin: 0.25rem 0 0;
+  color: var(--wb-quiet);
+}
+
+/* --- Banners ------------------------------------------------------------ */
+
+.wb-banner {
+  border-radius: var(--wb-radius);
+  padding: 0.75rem 1rem;
+  margin: 0 0 1rem;
+  border: 1px solid transparent;
+}
+
+.wb-banner > :first-child { margin-top: 0; }
+.wb-banner > :last-child { margin-bottom: 0; }
+
+.wb-banner-title {
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+}
+
+.wb-banner-holding {
+  background: var(--wb-accent-soft);
+  border-color: var(--wb-ink);
+  color: var(--wb-ink);
+}
+
+.wb-banner-published {
+  background: var(--wb-accent-soft);
+  border-color: var(--wb-accent);
+  color: var(--wb-ink);
+}
+
+.wb-banner-problem {
+  background: var(--wb-problem);
+  border-color: var(--wb-problem-ink);
+  color: var(--wb-problem-ink);
+}
+
+.wb-banner-aside {
+  margin: 0.5rem 0 0;
+}
+
+/* --- Filter row --------------------------------------------------------- */
+
+#queue-controls {
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+#queue-controls .field {
+  flex: 0 1 16rem;
+}
+
+/* --- Cards -------------------------------------------------------------- */
+
+.wb-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.wb-card {
+  border: 1px solid var(--wb-line);
+  border-radius: var(--wb-radius);
+  padding: 1rem;
+}
+
+.wb-card-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.wb-ident {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--wb-accent);
+}
+
+.wb-position {
+  margin-left: auto;
+  color: var(--wb-quiet);
+}
+
+.wb-statement {
+  margin: 0 0 0.75rem;
+}
+
+/* --- Pills -------------------------------------------------------------- */
+
+.wb-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.wb-pills:empty {
+  display: none;
+}
+
+.wb-pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.125rem 0.625rem;
+  border: 1px solid transparent;
+}
+
+.wb-pill-concept {
+  background: var(--wb-accent-soft);
+  color: var(--wb-ink);
+}
+
+.wb-pill-lesson {
+  background: var(--wb-accent-soft);
+  color: var(--wb-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.wb-pill-warn {
+  background: var(--wb-warn);
+  color: var(--wb-warn-ink);
+  border-color: var(--wb-warn-ink);
+}
+
+.wb-pill-done {
+  background: var(--wb-accent-soft);
+  color: var(--wb-ink);
+  border-color: var(--wb-accent);
+}
+
+/* --- Boundary notes ----------------------------------------------------- */
+
+.wb-boundaries {
+  border: 1px solid var(--wb-line);
+  border-radius: var(--wb-radius);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.wb-boundaries summary {
+  cursor: pointer;
+}
+
+.wb-boundary-head {
+  margin: 0.75rem 0 0.25rem;
+  font-weight: 600;
+}
+
+.wb-boundary-list {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.wb-drafted-note {
+  margin: 0.75rem 0 0;
+  color: var(--wb-quiet);
+}
+
+/* --- Evidence ----------------------------------------------------------- */
+
+.wb-evidence-head {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.wb-record-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.wb-record {
+  border-left: 3px solid var(--wb-line);
+  padding-left: 0.875rem;
+}
+
+.wb-record-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
+}
+
+.wb-record-title {
+  font-weight: 600;
+}
+
+.wb-objective,
+.wb-record-note,
+.wb-warning-detail p {
+  margin: 0.25rem 0;
+  color: var(--wb-quiet);
+}
+
+.wb-warning-detail:empty {
+  display: none;
+}
+
+/* The quoted lesson text the claim rests on. Set apart because it is the one
+   thing on the card a reviewer is being asked to judge. */
+.wb-proof {
+  margin: 0.375rem 0;
+  border-left: 2px solid var(--wb-accent);
+  padding-left: 0.75rem;
+}
+
+.wb-stale {
+  background: var(--wb-problem);
+  color: var(--wb-problem-ink);
+  border-radius: var(--wb-radius);
+  padding: 0.5rem 0.75rem;
+  margin: 0.375rem 0;
+}
+
+.wb-level {
+  display: block;
+  margin: 0.5rem 0;
+}
+
+.wb-record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.wb-record-status {
+  margin: 0.25rem 0 0;
+  color: var(--wb-quiet);
+}
+
+.wb-reason {
+  margin: 0.5rem 0;
+}
+
+.wb-reason label {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.wb-error {
+  margin: 0.25rem 0;
+  color: var(--wb-problem-ink);
+  font-weight: 600;
+}
+
+.wb-no-evidence {
+  border: 1px dashed var(--wb-line);
+  border-radius: var(--wb-radius);
+  padding: 0.625rem 0.875rem;
+}
+
+.wb-no-evidence > :first-child { margin-top: 0; }
+.wb-no-evidence > :last-child { margin-bottom: 0; }
+
+.wb-no-evidence-label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+/* --- Comparison to the previous run ------------------------------------- */
+
+.wb-diff:empty {
+  display: none;
+}
+
+.wb-diff {
+  margin-top: 1rem;
+}
+
+.wb-diff-group {
+  margin-bottom: 0.75rem;
+}
+
+.wb-diff-head {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
 }

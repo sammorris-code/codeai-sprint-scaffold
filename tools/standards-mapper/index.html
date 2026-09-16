@@ -21,8 +21,8 @@
     <p>Internal tool. Staff only.</p>
     <dl class="meta">
       <dt>Reference</dt><dd>Candidate #3a</dd>
-      <dt>Owner</dt><dd>unassigned</dd>
-      <dt>Status</dt><dd>Scaffold only</dd>
+      <dt>Owner</dt><dd>Sam Morris (taken over from Danielle Reyes)</dd>
+      <dt>Status</dt><dd>Review screen rebuilt on the alignment workbench prototype</dd>
     </dl>
   </header>
 
@@ -43,6 +43,12 @@
         This tool proposes the matches and a person confirms them. Every
         proposed match goes through review before it becomes a published claim.
         The reviewed output is the data layer that Standards Lookup reads from.
+      </p>
+      <p>
+        Results reach a district when somebody approves the run. That is the
+        whole condition. Boundary notes arriving as drafts holds nothing back —
+        <a href="../../contract/REVIEW-DESIGN.md">REVIEW-DESIGN.md</a> says why
+        the old set-wide gate went.
       </p>
     </section>
 
@@ -97,90 +103,33 @@
       </form>
     </section>
 
-    <section class="section" id="queue-data">
-      <h2>Review queue</h2>
-      <p>
-        One standard at a time: what it says, what counts as teaching it and
-        what does not, then the lessons proposed as evidence. Still plain and
-        unstyled.
-      </p>
-      <div id="queue-list">Loading…</div>
-      <p id="queue-announcer" class="visually-hidden" role="status" aria-live="polite"></p>
+    <section class="section">
+      <h2>This run</h2>
+      <div id="run-summary">
+        <p class="wb-note">Loading the run&hellip;</p>
+      </div>
     </section>
 
     <section class="section" id="queue">
       <h2>Review queue</h2>
       <p>
-        Sample rows, kept only so the page is not empty. <strong>This table is
-        the next piece of work.</strong> It is being replaced by a review queue
-        that shows one standard at a time with its evidence beside it. The brief
-        for that work is
-        <a href="../../contract/REVIEW-QUEUE-GUIDE.md">REVIEW-QUEUE-GUIDE.md</a>.
+        One card per standard: what it says, what counts as teaching it, and
+        each lesson proposed as evidence with the proof beside it. Accept or
+        reject one lesson at a time.
       </p>
-      <div class="table-scroll">
-        <table class="data-table">
-          <caption class="visually-hidden">Proposed standard matches awaiting human review</caption>
-          <thead>
-            <tr>
-              <th scope="col">Standard</th>
-              <th scope="col">Proposed evidence</th>
-              <th scope="col">Depth</th>
-              <th scope="col">Confidence</th>
-              <th scope="col">Decision</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>3A-AP-13</td>
-              <td>AIF S1, Unit 4, Lesson 6</td>
-              <td>Full</td>
-              <td>High</td>
-              <td>
-                <label for="d1" class="visually-hidden">Decision for 3A-AP-13</label>
-                <select id="d1" name="decision-1">
-                  <option>Needs review</option>
-                  <option>Confirm</option>
-                  <option>Reject</option>
-                  <option>Change depth</option>
-                </select>
-              </td>
-            </tr>
-            <tr>
-              <td>3A-DA-09</td>
-              <td>AIF S1, Unit 7, Lesson 2</td>
-              <td>Partial</td>
-              <td>Medium</td>
-              <td>
-                <label for="d2" class="visually-hidden">Decision for 3A-DA-09</label>
-                <select id="d2" name="decision-2">
-                  <option>Needs review</option>
-                  <option>Confirm</option>
-                  <option>Reject</option>
-                  <option>Change depth</option>
-                </select>
-              </td>
-            </tr>
-            <tr>
-              <td>3A-IC-24</td>
-              <td>No evidence found</td>
-              <td>None</td>
-              <td>Low</td>
-              <td>
-                <label for="d3" class="visually-hidden">Decision for 3A-IC-24</label>
-                <select id="d3" name="decision-3">
-                  <option>Needs review</option>
-                  <option>Confirm gap</option>
-                  <option>Search again</option>
-                </select>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+
+      <div class="field-row" id="queue-controls" hidden></div>
+
+      <div id="queue-list">
+        <p class="wb-note">Loading the review queue&hellip;</p>
       </div>
-      <div class="actions">
-        <button type="button">Save decisions</button>
-        <button type="button">Export CSV</button>
-      </div>
+
+      <p id="queue-announcer" class="visually-hidden" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="section">
+      <h2>When you are done</h2>
+      <div id="queue-actions"></div>
     </section>
 
     <section class="section">
@@ -201,6 +150,16 @@
           <em>Lesson may not go deep enough</em> and <em>Close match, likely not
           a real one</em>. Each one says what to go and look at.
         </li>
+        <li>
+          <strong>What holds results back from a district?</strong> An
+          unapproved run, and nothing else. The set-wide boundary gate is gone.
+        </li>
+        <li>
+          <strong>One card at a time, or a list?</strong> A list. Working
+          through forty standards one card at a time hid how much was left, and
+          a reviewer could not skim for the flagged ones. The filter row above
+          the queue replaces the paging.
+        </li>
       </ul>
 
       <h3>Still open</h3>
@@ -211,9 +170,9 @@
           either way. Somebody has to choose, in one place, whether to show them.
         </li>
         <li>
-          Is a queue of one card at a time right for somebody working through
-          forty standards, or would a dense table with only the flagged rows
-          opened be quicker?
+          Which coverage percentage do we quote to a state — in scope, or whole
+          framework? Both are on screen and both are true. The answer should be
+          decided once, not per conversation.
         </li>
       </ul>
 
@@ -233,13 +192,19 @@
 
 </div>
 
-<!-- loader.js knows where the data lives. mapper.js fills the menus with it.
-     Plain scripts, not modules: a module is blocked outright when this page is
+<!-- Plain scripts, not modules: a module is blocked outright when this page is
      opened from a file path, and then the panel explaining that could never
-     appear. -->
+     appear.
+
+     Order matters. loader.js and decisions-store.js are what the panels talk
+     to, the four panels define themselves next, and workbench.js goes last
+     because it loads the data and hands it to whichever panels exist. -->
 <script src="loader.js"></script>
-<script src="mapper.js"></script>
 <script src="decisions-store.js"></script>
+<script src="mapper.js"></script>
+<script src="run-summary.js"></script>
 <script src="queue.js"></script>
+<script src="actions.js"></script>
+<script src="workbench.js"></script>
 </body>
 </html>

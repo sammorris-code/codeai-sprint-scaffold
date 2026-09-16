@@ -264,8 +264,16 @@ lesson's current hash. Those records return to the queue. Nobody watches a
 directory. A scheduled job re-extracts and this endpoint reports the result.
 
 ### `POST /api/runs/{id}/approve`
-Sets `run.status` to `approved`. Refuses with `409` when the set is not
-`drafted+reviewed`. **This is the release gate, enforced by the service.**
+Sets `run.status` to `approved`. **This is the release gate, enforced by the
+service, and approval is the whole of it.**
+
+It used to refuse with `409` when the set was not `drafted+reviewed`. That
+condition is gone — see `REVIEW-DESIGN.md` — and nothing about the set's
+boundary notes is consulted here any more.
+
+The one refusal left is arithmetic, not judgement: `409 count_mismatch` when the
+coverage buckets do not sum to the candidate set, which means a standard has no
+outcome row. A total nobody can justify must not be approved.
 
 ---
 

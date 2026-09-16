@@ -16,8 +16,17 @@ on:
   push:
     branches: [main]
     paths:
+      # Everything the Dockerfile copies. The static site is in this list
+      # because the API serves it from the same origin, so a change to a tool
+      # page only reaches the hosted box when the image is rebuilt. Leave the
+      # site out and the box keeps serving whatever it was built with, until
+      # some unrelated service change happens to rebuild it - a stale page
+      # that nothing reports as stale.
       - 'service/**'
       - 'contract/**'
+      - 'index.html'
+      - 'css/**'
+      - 'tools/**'
       - '.github/workflows/publish-image.yml'
   workflow_dispatch:
 
