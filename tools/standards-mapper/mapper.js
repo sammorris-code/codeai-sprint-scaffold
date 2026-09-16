@@ -98,8 +98,8 @@
             count(courses.length, 'course') + '. ' +
             (unchecked
               ? count(unchecked, 'set') + ' ' + (unchecked === 1 ? 'has' : 'have') +
-                ' boundary notes that nobody has checked yet. You can run those ' +
-                'internally. They cannot go to a district.'
+                ' boundary notes that nobody has checked yet. Those notes are ' +
+                'drafts; a reviewer checks one when an alignment turns on it.'
               : 'Every set has been checked by a person.'));
       })
       .catch(showError);

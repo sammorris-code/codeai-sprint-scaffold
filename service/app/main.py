@@ -292,8 +292,13 @@ async def ingest(file: UploadFile = File(...),
 
 @app.get("/api/standards-sets/{set_id}/boundary-queue")
 def boundary_queue(set_id: int):
-    """The one-time gate for a set. Until every standard has a verdict, results
-    built on this set cannot reach a district."""
+    """Every standard in this set whose boundary nobody has checked.
+
+    This was a gate: results built on the set could not reach a district until
+    the list was empty. It is a worklist now, and nothing waits on it - see
+    contract/REVIEW-DESIGN.md. It is also where a boundary raised by an
+    alignment gets answered.
+    """
     s = one(f"SELECT {SET_COLUMNS} FROM standards_set WHERE id = %(id)s",
             {"id": set_id})
     if not s:
