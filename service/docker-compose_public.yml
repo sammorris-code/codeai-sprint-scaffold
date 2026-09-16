@@ -42,10 +42,12 @@
 #      docker compose -f docker-compose_public.yml exec -T db \
 #        psql -U standards -d standards < dump.sql
 #
-# 6. Put it behind Traefik. Copy traefik/standards.yml into the directory your
-#    file provider watches, set the Host rule, and choose a middleware. The
-#    api joins Traefik's network and publishes nothing, so that route is the
-#    only way to reach it.
+# 6. Put it behind Traefik. Copy traefik/standards.toml into the directory
+#    your file provider watches and set the Host rule. Read its header first:
+#    the entrypoint name, the TLS block and the middleware are conventions that
+#    differ between installations, and copying them from a rules file that
+#    already works on your proxy saves an hour of 404s. The api joins Traefik's
+#    network and publishes nothing, so that route is the only way to reach it.
 #
 # 7. Use the interface at https://<your host>/tools/standards-mapper/. The
 #    service serves the site as well as the API, so the tool is already there
@@ -84,9 +86,9 @@
 # reach it can approve a run.
 #
 # So it publishes no host port at all, and Traefik is the only route in. The
-# middleware on that route is the authentication - see traefik/standards.yml,
-# which also explains why an address allowlist is usually the right choice over
-# basic auth here, and what breaks if you pick wrong.
+# middleware on that route is the authentication - see traefik/standards.toml,
+# which also explains why basic auth works here when in front of an API it
+# usually does not, and how to read a 404 against a 502 when it does not.
 
 name: standards-public
 
@@ -136,7 +138,7 @@ services:
       DATABASE_URL: postgresql://standards:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/standards
       # ANTHROPIC_API_KEY is absent on purpose. See the note above.
     # Named so Traefik can address it as http://standards-api:8000 over the
-    # shared network below. See traefik/standards.yml.
+    # shared network below. See traefik/standards.toml.
     container_name: standards-api
     # No `ports:` at all. Traefik is the only way in, which means the
     # middleware on that route cannot be walked around by finding the port.
