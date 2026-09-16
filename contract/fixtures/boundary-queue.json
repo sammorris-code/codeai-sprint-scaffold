@@ -6,7 +6,7 @@
     "set_type": "standards",
     "framework_year": "2026",
     "boundary_provenance": "drafted",
-    "publishable": false
+    "all_boundaries_checked": false
   },
   "items": [
     {
@@ -237,7 +237,7 @@
   "total": 14,
   "remaining": 14,
   "_fixture_notes": [
-    "A one-time gate for each set. When every row has a verdict, the set flips to drafted+reviewed and publishable becomes true.",
+    "A worklist, not a gate. When every row has a verdict the set flips to drafted+reviewed and all_boundaries_checked becomes true. Nothing waits on that - publishing needs an approved run and nothing else.",
     "nearest_csta is a drafting aid and an audit trail. Do not present it as a validated crosswalk.",
     "A drafted boundary means a rejection may be the boundary's fault, not the curriculum's. Say so on screen."
   ]

@@ -22,3 +22,11 @@ __pycache__/
 # service/sample_documents/ is the committed one, and holds only DEMO data.
 service/documents/*
 !service/documents/README.md
+
+# The extracted curriculum corpus, and the clone it comes from. Both are
+# derived from an upstream repository, both are large, and 133 of the links
+# inside the corpus point at answer keys restricted to verified teachers.
+# Rebuild it with service/extract_curriculum.py; never commit it here.
+out/
+corpus/
+cdo/
