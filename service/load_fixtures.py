@@ -23,10 +23,57 @@ DSN = os.environ.get("DATABASE_URL",
 
 
 def fx(name):
-    return json.loads((FIXTURES / f"{name}.json").read_text())
+    return json.loads((FIXTURES / f"{name}.json").read_text(encoding="utf-8"))
 
 
-def load(conn):
+# Everything the fixtures themselves create. Anything else in the database was
+# put there by a person, and this file must not destroy it.
+FIXTURE_FRAMEWORKS = ("DEMO",)
+FIXTURE_COMMIT_PREFIX = "0000000demo"
+
+
+def real_data(conn):
+    """What is in the database that the fixtures did not put there.
+
+    This exists because `load()` truncates every table, and that is only safe
+    against a scratch database. It stopped being safe the moment somebody
+    ingested a real framework or loaded a real curriculum snapshot — and the
+    compose file runs this on **every** `docker compose up`, so an ingested
+    framework would not survive a restart.
+
+    Returns a list of plain descriptions, empty when the database holds
+    nothing but fixtures.
+    """
+    found = []
+    sets = conn.execute(
+        "SELECT framework, standard_set, framework_year, standard_count "
+        "FROM standards_set WHERE framework <> ALL(%s) ORDER BY id",
+        (list(FIXTURE_FRAMEWORKS),)).fetchall()
+    for s in sets:
+        found.append(f"standards set {s[0]}/{s[1]}/{s[2]}, "
+                     f"{s[3]} standards")
+    snaps = conn.execute(
+        "SELECT source_commit, lesson_count FROM snapshot "
+        "WHERE source_commit NOT LIKE %s ORDER BY id",
+        (FIXTURE_COMMIT_PREFIX + "%",)).fetchall()
+    for s in snaps:
+        found.append(f"curriculum snapshot {s[0][:12]}, {s[1]} lessons")
+    return found
+
+
+def load(conn, force=False):
+    """Replace everything with the fixtures.
+
+    Refuses when the database holds anything real, unless `force`. Returning
+    rather than truncating is the whole point: this runs unattended from
+    compose, and a seed step that quietly deletes a day's ingestion is worse
+    than a seed step that does nothing.
+    """
+    if not force:
+        real = real_data(conn)
+        if real:
+            return None
+
     cur = conn.cursor()
 
     # Wipe first so this is repeatable. Prototype only: the real store never
@@ -142,9 +189,23 @@ def load(conn):
 
 
 if __name__ == "__main__":
+    # --force is the only way to overwrite a database that holds real work.
+    force = "--force" in sys.argv
     try:
         with psycopg.connect(DSN) as conn:
-            outcomes, records = load(conn)
+            result = load(conn, force=force)
+            if result is None:
+                # Exit 0, not 1. Compose will not start the API until this
+                # container finishes successfully, and refusing to overwrite
+                # somebody's data is a success.
+                print("The database holds work the fixtures did not put there:")
+                for item in real_data(conn):
+                    print(f"  - {item}")
+                print("\nLeaving it alone. The sample data is not loaded.\n"
+                      "Run with --force to replace it, or point DATABASE_URL\n"
+                      "at a scratch database.")
+                sys.exit(0)
+            outcomes, records = result
     except psycopg.OperationalError as e:
         sys.exit(f"Could not reach the database at {DSN}\n{e}")
     print(f"Loaded: {outcomes} standard outcomes, {records} alignment records.")

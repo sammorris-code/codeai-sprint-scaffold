@@ -38,7 +38,7 @@ def check(name, condition, detail=""):
 
 
 def fx(name):
-    return json.loads((FIXTURES / f"{name}.json").read_text())
+    return json.loads((FIXTURES / f"{name}.json").read_text(encoding="utf-8"))
 
 
 def strip(node):
@@ -64,12 +64,32 @@ def reset():
     CI never saw that, since CI always starts from an empty database. Somebody
     running it twice on their own machine would, and would reasonably conclude
     they had broken something. A test that only works once is a trap.
+
+    **The reset truncates every table**, which is fine against a scratch
+    database and destroys a day's work against a real one. It has done exactly
+    that: a run of this test against a working database deleted an ingested
+    state framework. So it now stops when the database holds anything the
+    fixtures did not create, and names what it would have destroyed. Set
+    ALLOW_DESTRUCTIVE_RESET=1 if you genuinely mean to overwrite it.
     """
     try:
         import psycopg
-        from service.load_fixtures import load, DSN
+        from service.load_fixtures import load, real_data, DSN
+        force = os.environ.get("ALLOW_DESTRUCTIVE_RESET") == "1"
         with psycopg.connect(DSN) as conn:
-            outcomes, records = load(conn)
+            if not force:
+                real = real_data(conn)
+                if real:
+                    sys.exit(
+                        "This test resets the database, and this one holds "
+                        "work the fixtures did not put there:\n  "
+                        + "\n  ".join(f"- {item}" for item in real)
+                        + f"\n\nRefusing to destroy it. DATABASE_URL is "
+                          f"{DSN}.\nPoint it at a scratch database, or set "
+                          f"ALLOW_DESTRUCTIVE_RESET=1 if you mean it.")
+            outcomes, records = load(conn, force=True)
+    except SystemExit:
+        raise
     except Exception as e:
         # Fatal, not a warning. A test that cannot establish its starting state
         # is not testing what it claims to. The first version of this printed a
