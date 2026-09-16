@@ -1,0 +1,21 @@
+{
+  "id": 1,
+  "set_id": 1,
+  "course_id": 1,
+  "snapshot_id": 7,
+  "scope_note": "Algorithms, Data, Impacts and Program Requirements. Networks is out of scope: it is a different pathway.",
+  "grain": "lesson",
+  "status": "in_review",
+  "previous_run_id": null,
+  "created_at": "2026-09-15T11:00:00Z",
+  "approved_by": null,
+  "approved_on": null,
+  "counts": {
+    "standards": 14,
+    "proposed": 6,
+    "accepted": 0,
+    "rejected": 0,
+    "stale": 1,
+    "flagged": 4
+  }
+}

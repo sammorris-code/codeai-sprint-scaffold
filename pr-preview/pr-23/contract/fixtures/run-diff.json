@@ -1,0 +1,25 @@
+{
+  "run_id": 1,
+  "against_run_id": 0,
+  "snapshot_from": 6,
+  "snapshot_to": 7,
+  "stale": [
+    {
+      "record_id": 5004,
+      "lesson_stable_id": "demo-unit-two-2026::guidelines-for-working",
+      "lesson_name": "Making Decisions with If and Else",
+      "was_hash": "h9ccc111",
+      "now_hash": "h9ccc777",
+      "previous_status": "accepted",
+      "standard_identifier": "DEMO-1.B.1"
+    }
+  ],
+  "added": [],
+  "removed": [],
+  "level_changed": [],
+  "_fixture_notes": [
+    "stale is produced by comparing lesson_content_hash on the record against the lesson's current hash.",
+    "Nobody watches a directory. A scheduled job re-extracts, and this endpoint reports the result.",
+    "An accepted claim going stale is the case that matters. A person already said yes to something that then changed."
+  ]
+}
