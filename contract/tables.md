@@ -135,6 +135,7 @@ CREATE TABLE course (
   snapshot_id  bigint NOT NULL REFERENCES snapshot(id) ON DELETE CASCADE,
   course_key   text NOT NULL,              -- stable slug
   course_name  text NOT NULL,
+  semester     text,                       -- 'S1', 'S2'. Null for most courses.
   UNIQUE (snapshot_id, course_key)
 );
 
@@ -154,6 +155,13 @@ CREATE TABLE course_unit (
   PRIMARY KEY (course_id, unit_id)
 );
 ```
+
+**`semester` belongs on the course, not on the command line.** The mapping CSV
+has a `semester` column and nothing in the store used to say which course was
+which, so the value was typed by whoever ran the export. A wrong label produced
+a wrong file and nothing caught it. Most courses have no semester and the
+column is null for them; it is a label for display and export, never an
+identifier. `script_name` remains the identifier.
 
 **`course_unit` is a join table because units are shared between courses.** A
 full-year course reuses the units of both semesters. Each unit is stored once and

@@ -73,6 +73,7 @@ CREATE TABLE course (
   snapshot_id  bigint NOT NULL REFERENCES snapshot(id) ON DELETE CASCADE,
   course_key   text NOT NULL,              -- stable slug
   course_name  text NOT NULL,
+  semester     text,                       -- 'S1', 'S2'. Null for most courses.
   UNIQUE (snapshot_id, course_key)
 );
 

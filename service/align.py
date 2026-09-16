@@ -82,6 +82,12 @@ def main(argv=None):
                     help="full sends the teaching guide and student screens; "
                          "distilled sends the action summary only")
     ap.add_argument("--model", default=engine.MODEL)
+    ap.add_argument("--tier1", action="store_true",
+                    help="screen each lesson with a cheap model first. Cuts "
+                         "tier-2 work by about 80%% and loses about 17%% of "
+                         "the claims a full run makes. For iteration, not for "
+                         "a run a district will read.")
+    ap.add_argument("--tier1-model", default=engine.SCREEN_MODEL)
     ap.add_argument("--dry-run", action="store_true",
                     help="build the prompts, call nothing, report the size")
     ap.add_argument("--out", default=None, help="also write the run as JSON")
@@ -123,6 +129,11 @@ def main(argv=None):
                   "rejection on a boundary may be the boundary's fault.")
 
         standards_text = engine.standards_block(candidates)
+        screen_text = engine.screen_block(candidates) if args.tier1 else None
+        by_identifier = {s["identifier"]: s for s in candidates}
+        if args.tier1:
+            print(f"Tier 1    : {args.tier1_model} screens each lesson first. "
+                  f"Measured at 83% recall of a full run — iteration only.")
 
         if args.dry_run:
             import anthropic
@@ -151,14 +162,14 @@ def main(argv=None):
         conn.commit()
         print(f"\nRun {run_id} created.\n")
 
-        usage, per_claims, per_rejections = {}, {}, {}
+        usage, screen_usage, per_claims, per_rejections = {}, {}, {}, {}
         failures = []
         started = time.time()
 
         for i, lesson in enumerate(lessons, 1):
             distilled = distil(lesson)
             try:
-                answer = engine.judge(client, standards_text, lesson, distilled,
+                answer = engine.judge(client, lesson_text, lesson, distilled,
                                       model=args.model, usage=usage)
             except Exception as exc:                              # noqa: BLE001
                 failures.append({"stable_id": lesson["stable_id"],

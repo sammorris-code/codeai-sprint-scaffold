@@ -34,6 +34,18 @@ from .repo import SUBDIRS, Repo
 
 
 YEAR_SUFFIX = re.compile(r"-(?:19|20)\d{2}$")
+
+# Which courses are one semester of a longer course. A mapping CSV carries a
+# semester column, and before this the value was typed on the command line by
+# whoever ran the export — so a wrong label produced a wrong file and nothing
+# caught it. This is a naming convention read from the course key, not a fact
+# the curriculum states, so it is recorded for a person to confirm rather than
+# trusted. Courses absent from this map have no semester, which is correct for
+# almost all of them.
+SEMESTER_BY_COURSE = {
+    "ai-foundations-exploring-ai-and-cs-2026": "S1",
+    "ai-foundations-designing-and-building-with-ai-2026": "S2",
+}
 # Words the plain title-caser gets wrong. Districts read these.
 ACRONYMS = {"Ai": "AI", "Api": "API", "Apis": "APIs", "Cs": "CS",
             "Ui": "UI", "Ux": "UX", "Html": "HTML", "Css": "CSS",
@@ -109,7 +121,8 @@ def load_course(repo, course_key):
         name = offering.get("display_name") or name
     except Exception:                                      # noqa: BLE001
         name = UnitNames.humanise(course_key)
-    return {"course_key": course_key, "course_name": name, "units": units}
+    return {"course_key": course_key, "course_name": name,
+            "semester": SEMESTER_BY_COURSE.get(course_key), "units": units}
 
 
 class IndexCache:

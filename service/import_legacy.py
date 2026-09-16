@@ -55,7 +55,8 @@ def corpus_index(conn, snapshot_id):
     """
     rows = conn.execute("""
         SELECT l.id, l.stable_id, l.lesson_name, l.lesson_token,
-               l.has_lesson_plan, l.relative_position, l.lesson_group_name,
+               l.content_hash, l.has_lesson_plan, l.relative_position,
+               l.lesson_group_name,
                u.script_name, c.course_key, cu.position AS unit_position,
                cu.displayed_number
           FROM lesson l
