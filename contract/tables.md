@@ -361,16 +361,19 @@ The public site never filters. The API refuses to serve an ungated record.
 
 ```sql
 SELECT o.* FROM standard_outcome o
-  JOIN run r          ON r.id = o.run_id
-  JOIN standards_set s ON s.id = r.set_id
- WHERE r.status = 'approved'
-   AND s.boundary_provenance = 'drafted+reviewed';
+  JOIN run r ON r.id = o.run_id
+ WHERE r.status = 'approved';
 ```
 
-Two conditions, both required. The run is approved, and the set's boundaries were
-checked by a person. Anything else is internal.
+One condition. A person approved this run. Anything else is internal.
 
-> **This rule is being reversed.** The set-level boundary condition is going away:
-> a boundary read on its own cannot be judged, and most boundaries never decide
-> anything. Review moves to the alignment that makes a boundary matter. See
-> `REVIEW-DESIGN.md` before building against the query above.
+This used to carry a second condition: the set's boundaries all had to be
+`drafted+reviewed`. That is gone, and `REVIEW-DESIGN.md` records why. Briefly: a
+boundary read on its own cannot be judged, so a verdict given without a lesson in
+front of you is a guess that looks like a check — and most boundaries in a set
+never decide anything anyway. Review now happens where an alignment makes a
+boundary matter.
+
+`boundary_provenance` still means what it always did. It records where a boundary
+came from, and `drafted+reviewed` still means a person checked it. It is no
+longer a precondition for publishing.

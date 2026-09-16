@@ -4,8 +4,13 @@
 Everything about ingestion is deterministic except drafting the boundaries, so
 everything except that is tested here for real: the document is parsed, the
 statements are extracted word for word, the count is reconciled, the rows are
-written, the headings are linked, and the review gate flips the set to
-publishable only when every boundary has a verdict.
+written, the headings are linked, and a boundary verdict is recorded and
+reflected back.
+
+That last part is no longer a release gate. It used to be: no run against a set
+could be approved until every boundary in it had a verdict. That rule is gone -
+contract/REVIEW-DESIGN.md says why - and the verdict flow below is now just how
+a reviewer records a decision about one boundary.
 
 The one stubbed part is the call to Claude. Stubbing it keeps this test free
 and offline, and it is honest about what is NOT covered: the quality of a
@@ -353,10 +358,10 @@ with TestClient(main.app) as c:
     check("names the existing set",
           str(set_id) in r.json()["detail"]["error"]["message"])
 
-    print("\nThe review gate")
+    print("\nRecording a boundary verdict")
     q = c.get(f"/api/standards-sets/{set_id}/boundary-queue").json()
     check("every standard awaits a verdict", q["remaining"] == 14, str(q["remaining"]))
-    check("the set reports itself unpublishable", q["set"]["publishable"] is False)
+    check("no boundary has been checked yet", q["set"]["publishable"] is False)
 
     r = c.get("/api/standards-sets").json()
     this = [s for s in r["items"] if s["id"] == set_id][0]
@@ -368,18 +373,18 @@ with TestClient(main.app) as c:
                json={"verdict": "accept", "actor": "test@example.invalid"})
     mid = c.get(f"/api/standards-sets/{set_id}/boundary-queue").json()
     check("13 checked leaves 1 remaining", mid["remaining"] == 1, str(mid["remaining"]))
-    check("the set is still not publishable", mid["set"]["publishable"] is False,
+    check("some checked is not all checked", mid["set"]["publishable"] is False,
           "one unchecked boundary must hold the whole set back")
 
     r = c.post(f"/api/standards/{ids[-1]}/boundary-verdict",
                json={"verdict": "edit",
                      "edited_includes": ["A reviewer rewrote this one."],
                      "actor": "test@example.invalid", "reason": "too narrow"})
-    check("the last verdict flips the set", r.json()["set_now_publishable"] is True,
+    check("the last verdict completes the set", r.json()["set_now_publishable"] is True,
           r.text[:120])
     final = c.get(f"/api/standards-sets/{set_id}/boundary-queue").json()
     check("nothing remains", final["remaining"] == 0)
-    check("the set is publishable", final["set"]["publishable"] is True)
+    check("every boundary is now checked", final["set"]["publishable"] is True)
     check("its provenance reads drafted+reviewed",
           final["set"]["boundary_provenance"] == "drafted+reviewed")
 
@@ -459,4 +464,5 @@ if failures:
         print("  - " + f)
     sys.exit(1)
 print("Ingestion works end to end. The drafted boundaries themselves are a\n"
-      "judgement no test can check - that is what the review gate is for.")
+      "judgement no test can check. They are reviewed when an alignment makes\n"
+      "one matter - see contract/REVIEW-DESIGN.md.")

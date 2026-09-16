@@ -620,21 +620,21 @@ def coverage(run_id: int):
 
 @app.post("/api/runs/{run_id}/approve")
 def approve(run_id: int, actor: str):
-    """The release gate.
+    """The release gate. One condition now: a person approved this run.
 
-    Two conditions, both required: the run is approved by a person, and a person
-    has checked the set's boundary notes. Results built on unchecked notes
-    cannot reach a district, and that is enforced here rather than by an
-    interface remembering to.
+    It used to be two. The set's boundaries also had to have been checked, all
+    of them, before any run against it could be approved. That rule is gone -
+    see contract/REVIEW-DESIGN.md. Briefly: a boundary read on its own cannot be
+    judged, so a verdict given without a lesson in front of you is a guess that
+    looks like a check, and most boundaries in a set never decide anything at
+    all. Demanding all of them bought the appearance of rigour and little else,
+    at about 1,750 of them across the states we have to load.
+
+    Review did not go away. It moved to the alignment that makes a boundary
+    matter, where the reviewer sees a lesson, a standard, and the boundary
+    between them, and can fix either side.
     """
     run = run_or_404(run_id)
-    s = one("SELECT boundary_provenance, framework, standard_set, framework_year "
-            "FROM standards_set WHERE id = %(id)s", {"id": run["set_id"]})
-    if s["boundary_provenance"] != "drafted+reviewed":
-        fail(409, "set_not_reviewed",
-             f"This run cannot be approved. The boundary notes of "
-             f"{s['framework']} / {s['standard_set']} / {s['framework_year']} are "
-             f"{s['boundary_provenance']} and no person has checked them.", "set_id")
 
     check = coverage_for(run_id)[1]["count_check"]
     if not check["ok"]:
@@ -652,8 +652,10 @@ def approve(run_id: int, actor: str):
 # Public. Approved records from reviewed sets only. No parameter widens this.
 # ---------------------------------------------------------------------------
 
+# An approved run, and nothing about the set's boundary state. The second
+# condition that used to live here is gone; REVIEW-DESIGN.md says why.
 PUBLISHED = """
-    r.status = 'approved' AND ss.boundary_provenance = 'drafted+reviewed'
+    r.status = 'approved'
 """
 
 
@@ -668,7 +670,9 @@ def public_sets():
 
 @app.get("/public/coverage")
 def public_coverage(set_id: int, course_id: int):
-    published = one(f"""SELECT r.id FROM run r JOIN standards_set ss ON ss.id = r.set_id
+    # No join to standards_set: it was here only for the boundary condition
+    # that PUBLISHED no longer carries.
+    published = one(f"""SELECT r.id FROM run r
                         WHERE r.set_id = %(set)s AND r.course_id = %(course)s
                           AND {PUBLISHED}
                         ORDER BY r.approved_on DESC NULLS LAST LIMIT 1""",
