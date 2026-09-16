@@ -12,24 +12,43 @@
 window.ReviewDecisions = (function () {
   'use strict';
 
-  // record id -> decision
-  var decisions = {};
+  /* run id -> { record id -> decision }.
+   *
+   * Kept per run rather than in one flat bag. A reviewer who switches from
+   * Oklahoma to Texas and back should find their Oklahoma decisions still
+   * there, and the "needs your check" count is a count for the run on screen
+   * - one shared bag would make it wrong the moment a second run was opened.
+   * Nothing is ever dropped on a switch, so nothing has to be confirmed. */
+  var byRun = {};
+  var currentRun = 'none';
+
+  /* Called when the run on screen changes. */
+  function setRun(runId) {
+    currentRun = (runId === undefined || runId === null) ? 'none' : String(runId);
+    if (!byRun[currentRun]) { byRun[currentRun] = {}; }
+  }
+
+  function bag() {
+    if (!byRun[currentRun]) { byRun[currentRun] = {}; }
+    return byRun[currentRun];
+  }
 
   function get(recordId) {
-    return decisions[recordId] || null;
+    return bag()[recordId] || null;
   }
 
   function set(recordId, decision) {
-    decisions[recordId] = decision;
+    bag()[recordId] = decision;
   }
 
   function count() {
-    return Object.keys(decisions).length;
+    return Object.keys(bag()).length;
   }
 
   function all() {
-    return Object.keys(decisions).map(function (id) {
-      return decisions[id];
+    var current = bag();
+    return Object.keys(current).map(function (id) {
+      return current[id];
     });
   }
 
@@ -92,6 +111,7 @@ window.ReviewDecisions = (function () {
   }
 
   return {
+    setRun: setRun,
     get: get,
     set: set,
     count: count,

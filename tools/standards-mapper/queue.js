@@ -608,7 +608,23 @@ window.ReviewQueue = (function () {
     mount.appendChild(ul);
   }
 
+  /* A run's worth of state, thrown away when a different run arrives. Left
+   * behind, a half-open rejection box or a concept filter from the previous
+   * run would apply itself to standards that never had either. */
+  function reset() {
+    items = [];
+    conceptFilter = '';
+    onlyPending = false;
+    rejecting = {};
+    reasonErrors = {};
+    cardNodes = {};
+    announce('');
+  }
+
   function render(ctx) {
+    if (!ctx.run) { return; }
+
+    reset();
     items = ctx.queue.items || [];
 
     if (!items.length) {
@@ -621,19 +637,13 @@ window.ReviewQueue = (function () {
     renderList();
   }
 
-  function needsServing() {
+  function showMessage(text) {
     controls.hidden = true;
-    say('This page needs to be served before it can read the review queue.');
-  }
-
-  function showError(error) {
-    controls.hidden = true;
-    say('The review queue could not be read. ' + error.message);
+    say(text);
   }
 
   return {
     render: render,
-    needsServing: needsServing,
-    showError: showError
+    showMessage: showMessage
   };
 })();

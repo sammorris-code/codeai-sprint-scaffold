@@ -156,6 +156,12 @@ for i, l in enumerate(fixture("lessons.json")["items"]):
 
 validate(fixture("run.json"), load_schema("run.schema.json"), "run", "run.json")
 
+# Every row GET /api/runs returns is a run. The list carries no counts, which
+# the schema allows - counts is optional there precisely so a menu does not
+# have to compute them.
+for i, r in enumerate(fixture("runs.json")["items"]):
+    validate(r, load_schema("run.schema.json"), f"items[{i}]", "runs.json")
+
 queue = fixture("review-queue.json")
 for i, item in enumerate(queue["items"]):
     validate(item["outcome"], load_schema("standard-outcome.schema.json"),

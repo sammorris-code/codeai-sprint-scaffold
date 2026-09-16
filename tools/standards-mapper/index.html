@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Standards Mapper — Sprint Scaffold</title>
+  <title>Standards Mapper — Alignment workbench</title>
   <link rel="stylesheet" href="../../css/layout.css">
   <link rel="stylesheet" href="../../css/theme.css">
   <link rel="stylesheet" href="style.css">
@@ -32,63 +32,30 @@
       </ol>
     </nav>
     <h1>Standards Mapper</h1>
-    <dl class="meta">
-      <dt>Reference</dt><dd>Candidate #3a</dd>
-      <dt>Owner</dt><dd>Sam Morris (taken over from Danielle Reyes)</dd>
-      <dt>Status</dt><dd>Review screen rebuilt on the alignment workbench prototype</dd>
-    </dl>
   </header>
 
   <main>
 
-    <div class="demo-marker" role="note">
-      <p>Internal tool. Sample data.</p>
-      <p class="detail">
-        Every framework and course below is invented. Nothing on this screen is a
-        claim about a real course.
-      </p>
-    </div>
-
     <section class="section">
-      <h2>What it does</h2>
-      <p>
-        Aligning a state framework to a course is slow, and it is done by hand.
-        This tool proposes the matches and a person confirms them. Every
-        proposed match goes through review before it becomes a published claim.
-        The reviewed output is the data layer that Standards Lookup reads from.
-      </p>
-      <p>
-        Results reach a district when somebody approves the run. That is the
-        whole condition. Boundary notes arriving as drafts holds nothing back —
-        <a href="../../contract/REVIEW-DESIGN.md">REVIEW-DESIGN.md</a> says why
-        the old set-wide gate went.
-      </p>
-    </section>
-
-    <section class="section">
-      <h2>Start a mapping run</h2>
-      <p class="source-status" id="source-status" role="status" aria-live="polite">
-        Loading the standards sets and courses&hellip;
-      </p>
+      <h2 class="visually-hidden">Choose what to review</h2>
 
       <div class="needs-serving stack" id="needs-serving" hidden>
         <h3>This page needs to be served</h3>
         <p>
           You opened this page from a file on your computer. A browser will not
-          let a page read data files that way, so the menus have nothing to show.
+          let a page read data that way, so the menus have nothing to show.
           That is a browser rule, not a fault in this page.
         </p>
-        <p>To see it working, serve the folder from the top of the repository:</p>
-        <pre><code>python3 -m http.server 8000</code></pre>
         <p>
-          Then open
-          <a href="http://localhost:8000/tools/standards-mapper/">http://localhost:8000/tools/standards-mapper/</a>.
-          Press Ctrl and C in the terminal when you are done. Every other page
-          here still opens fine straight from a file.
+          This tool reads the live standards service, so the place it works is
+          wherever that service is serving it. To look at sample data instead,
+          swap the two lines at the top of <code>loader.js</code> and serve the
+          repository:
         </p>
+        <pre><code>python3 -m http.server 8000</code></pre>
       </div>
 
-      <form action="#queue" method="get" id="run-form">
+      <form id="run-form" class="wb-chooser">
         <div class="field-row">
           <p class="field">
             <label for="framework">Standards set</label>
@@ -102,24 +69,15 @@
               <option value="">Loading courses&hellip;</option>
             </select>
           </p>
-          <p class="field">
-            <label for="grain">Evidence grain</label>
-            <select id="grain" name="grain">
-              <option value="lesson">Lesson</option>
-              <option value="unit">Unit</option>
-            </select>
-          </p>
         </div>
-        <div class="actions">
-          <button type="submit">Propose matches</button>
-        </div>
+        <p class="source-status" id="source-status" role="status" aria-live="polite"></p>
       </form>
     </section>
 
     <section class="section">
-      <h2>This run</h2>
+      <h2 class="visually-hidden">This run</h2>
       <div id="run-summary">
-        <p class="wb-note">Loading the run&hellip;</p>
+        <p class="wb-note">Loading&hellip;</p>
       </div>
     </section>
 
@@ -145,35 +103,25 @@
       <div id="queue-actions"></div>
     </section>
 
-    <section class="section">
-      <h2>Open questions</h2>
+    <section class="section wb-about">
+      <h2>About this tool</h2>
 
-      <h3>Settled, in the data contract</h3>
-      <ul class="stack">
-        <li>
-          <strong>What happens to confirmed matches when a lesson changes
-          underneath them?</strong> Every match stores the lesson's content
-          fingerprint from the moment it was made. A scheduled job re-reads the
-          curriculum and compares. Any match whose lesson changed goes back in
-          the queue.
-        </li>
-        <li>
-          <strong>Should reviewers see the tool's confidence?</strong> No. A
-          score invites a reviewer to trust it. Two named warnings replace it:
-          <em>Lesson may not go deep enough</em> and <em>Close match, likely not
-          a real one</em>. Each one says what to go and look at.
-        </li>
-        <li>
-          <strong>What holds results back from a district?</strong> An
-          unapproved run, and nothing else. The set-wide boundary gate is gone.
-        </li>
-        <li>
-          <strong>One card at a time, or a list?</strong> A list. Working
-          through forty standards one card at a time hid how much was left, and
-          a reviewer could not skim for the flagged ones. The filter row above
-          the queue replaces the paging.
-        </li>
-      </ul>
+      <!-- Kept per the scaffold convention in CLAUDE.md: teams use this block
+           to claim work. Moved down here rather than removed, because it is
+           for the people building the tool, not the people using it. -->
+      <dl class="meta">
+        <dt>Reference</dt><dd>Candidate #3a</dd>
+        <dt>Owner</dt><dd>Sam Morris (taken over from Danielle Reyes)</dd>
+        <dt>Status</dt><dd>Reading the live standards service</dd>
+      </dl>
+
+      <p>
+        Results reach a district when somebody approves the run. That is the
+        whole condition — boundary notes arriving as drafts holds nothing back.
+        <a href="../../contract/REVIEW-DESIGN.md">REVIEW-DESIGN.md</a> says why
+        the old set-wide gate went, and
+        <a href="../../contract/api.md">api.md</a> is the shape of the data.
+      </p>
 
       <h3>Still open</h3>
       <ul class="stack">
@@ -187,14 +135,12 @@
           framework? Both are on screen and both are true. The answer should be
           decided once, not per conversation.
         </li>
+        <li>
+          Starting a run is not wired to this page yet. A run is opened with
+          <code>POST /api/runs</code> and filled by <code>service/align.py</code>,
+          which takes the better part of an hour.
+        </li>
       </ul>
-
-      <p>
-        The reasoning is in
-        <a href="az-sprint-standards-pipeline-briefing.md">the briefing</a>. The
-        agreed shape of the data is in
-        <a href="../../contract/README.md">the contract</a>.
-      </p>
     </section>
 
   </main>
@@ -211,7 +157,7 @@
 
      Order matters. loader.js and decisions-store.js are what the panels talk
      to, the four panels define themselves next, and workbench.js goes last
-     because it loads the data and hands it to whichever panels exist. -->
+     because it decides which run is on screen and hands it to them. -->
 <script src="loader.js"></script>
 <script src="decisions-store.js"></script>
 <script src="mapper.js"></script>

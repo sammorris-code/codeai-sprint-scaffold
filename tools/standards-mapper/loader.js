@@ -1,9 +1,6 @@
 /* loader.js — the one place that knows where the data comes from.
  *
- * Today it reads the fixtures in contract/fixtures/. Later it reads the API.
- * Change SOURCE below and nothing else in the page has to change.
- *
- * Two deliberate choices, both worth keeping:
+ * Three deliberate choices, all worth keeping:
  *
  * 1. This is a plain script, not an ES module. A module is blocked outright
  *    when the page is opened from a file path, so none of our code would run
@@ -11,60 +8,101 @@
  *    inside it fails instead, and we catch that and show a panel that says what
  *    to do. A page that explains itself beats a page that is blank.
  *
- * 2. Every path here is relative. Never write "/contract/...". Every pull
- *    request is published under pr-preview/pr-<number>/, and a leading slash
- *    escapes that folder and quietly loads the live site's file instead. The
- *    preview would then show the wrong thing rather than fail.
+ * 2. Every path here is relative. Never write "/api/...". Every pull request
+ *    is published under pr-preview/pr-<number>/, and a leading slash escapes
+ *    that folder and quietly loads the live site's data instead. The preview
+ *    would then show the wrong thing rather than fail.
+ *
+ * 3. No run id is baked in. An earlier version hardcoded /runs/1, which was
+ *    fine while the only data was a fixture holding one run. Against the real
+ *    store it would have shown whichever run happened to be first, forever.
+ *    Every run-scoped path is a function of the run being viewed.
  */
 
 window.StandardsSource = (function () {
   'use strict';
 
   var SOURCE = {
-    // ---- Reading fixtures. This is where we are now. --------------------
-    mode: 'fixtures',
-    base: '../../contract/fixtures',
+    // ---- Reading the live service. This is where we are now. ------------
+    //
+    // Relative, because the service serves this page: the API is at
+    // <wherever you loaded this from>/api. There is no hostname to configure
+    // and none to get wrong.
+    //
+    // It must stay relative for two reasons. A leading slash escapes
+    // pr-preview/pr-<number>/. And same origin means no CORS preflight -
+    // the hosted service sits behind basic auth, and cross-origin the
+    // browser's preflight OPTIONS carries no credentials, gets a 401, and
+    // every write fails as a CORS error naming nothing. Same origin, the
+    // credentials the browser already holds are sent, which is what
+    // `credentials: 'same-origin'` below is for.
+    //
+    // NOTE: only the service-served copy can load data. On GitHub Pages and
+    // in a pull-request preview there is no API behind ../../api, and the
+    // page says so rather than showing an empty screen.
+    mode: 'api',
+    base: '../../api',
 
-    // ---- Reading the API. Swap mode to 'api' and set the base. ----------
-    // mode: 'api',
+    // ---- Reading the fixtures instead. ----------------------------------
+    // Swap the two lines above for these to work against sample data with no
+    // service running - useful offline, and it is what the contract tests
+    // compare the service against.
     //
-    // Against a service on your own machine:
-    // base: 'http://localhost:8000/api',
+    // mode: 'fixtures',
+    // base: '../../contract/fixtures',
     //
-    // Against the hosted one, where this page is served BY that service and
-    // so shares its origin:
-    // base: '../../api',
-    //
-    // Relative, not '/api'. A leading slash escapes pr-preview/pr-<number>/
-    // and loads the live site's data instead - the preview then shows the
-    // wrong thing rather than failing.
-    //
-    // Same origin is not a nicety there. The hosted service sits behind basic
-    // auth, and cross-origin the browser's preflight OPTIONS carries no
-    // credentials, gets a 401, and every write fails as a CORS error naming
-    // nothing. Same origin there is no preflight, and the credentials the
-    // browser already holds are sent - which is what `credentials:
-    // 'same-origin'` below is for.
+    // Fixture mode ignores the run id: there is one run in the sample data
+    // and every run-scoped file is a fixed file.
 
     paths: {
       fixtures: {
-        'standards-sets': '/standards-sets.json',
-        'courses': '/courses.json',
-        'review-queue': '/review-queue.json',
-        'run': '/run.json',
-        'coverage': '/coverage.json',
-        'run-diff': '/run-diff.json'
+        'standards-sets': function () { return '/standards-sets.json'; },
+        'courses': function () { return '/courses.json'; },
+        'runs': function () { return '/runs.json'; },
+        'run': function () { return '/run.json'; },
+        'review-queue': function () { return '/review-queue.json'; },
+        'coverage': function () { return '/coverage.json'; },
+        'run-diff': function () { return '/run-diff.json'; }
       },
       api: {
-        'standards-sets': '/standards-sets',
-        'courses': '/courses',
-        'review-queue': '/runs/1/queue',
-        'run': '/runs/1',
-        'coverage': '/runs/1/coverage',
-        'run-diff': '/runs/1/diff'
+        'standards-sets': function () { return '/standards-sets'; },
+        'courses': function () { return '/courses'; },
+        'runs': function (p) {
+          return '/runs' + query({ set_id: p.setId, course_id: p.courseId });
+        },
+        'run': function (p) { return '/runs/' + needRun(p); },
+        'review-queue': function (p) { return '/runs/' + needRun(p) + '/queue'; },
+        'coverage': function (p) { return '/runs/' + needRun(p) + '/coverage'; },
+        'run-diff': function (p) {
+          return '/runs/' + needRun(p) + '/diff' +
+                 query({ against: p.againstRunId });
+        }
       }
     }
   };
+
+  /* "?a=1&b=2", or "" when nothing was given. Undefined and null are left
+   * out rather than sent as the strings "undefined" and "null", which the
+   * service would reject as a bad integer. */
+  function query(params) {
+    var parts = [];
+    Object.keys(params).forEach(function (key) {
+      var value = params[key];
+      if (value !== undefined && value !== null && value !== '') {
+        parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
+      }
+    });
+    return parts.length ? '?' + parts.join('&') : '';
+  }
+
+  /* A run-scoped path with no run is a bug in the caller, and one that would
+   * otherwise fetch "/runs/undefined" and report a confusing 422. */
+  function needRun(p) {
+    if (!p || p.runId === undefined || p.runId === null) {
+      throw new Error('This resource needs a run id and none was given.');
+    }
+    return p.runId;
+  }
 
   /* True when the page was opened by double-clicking the file rather than
    * through a web address. fetch() cannot work here, and that is a browser
@@ -73,32 +111,53 @@ window.StandardsSource = (function () {
     return window.location.protocol === 'file:';
   }
 
-  function urlFor(resource) {
-    var path = SOURCE.paths[SOURCE.mode][resource];
-    if (!path) {
+  function urlFor(resource, params) {
+    var build = SOURCE.paths[SOURCE.mode][resource];
+    if (!build) {
       throw new Error('loader.js knows no resource named "' + resource + '"');
     }
-    return SOURCE.base + path;
+    return SOURCE.base + build(params || {});
   }
 
   /* Reads one resource. Resolves with the parsed body.
    * Rejects with an Error carrying a .kind the page can branch on:
-   *   'file-path'  the page needs serving
-   *   'not-found'  the data is not where we looked
-   *   'network'    everything else */
-  function load(resource) {
+   *   'file-path'    the page needs serving
+   *   'no-service'   nothing is answering at ../../api
+   *   'not-found'    the service answered, but that run does not exist
+   *   'network'      everything else */
+  function load(resource, params) {
     if (isFilePath()) {
       var blocked = new Error('This page was opened from a file path.');
       blocked.kind = 'file-path';
       return Promise.reject(blocked);
     }
 
-    return fetch(urlFor(resource), { credentials: 'same-origin' })
+    var url;
+    try {
+      url = urlFor(resource, params);
+    } catch (error) {
+      error.kind = 'network';
+      return Promise.reject(error);
+    }
+
+    return fetch(url, { credentials: 'same-origin' })
       .then(function (response) {
         if (!response.ok) {
           var bad = new Error('The server answered ' + response.status +
-                              ' for ' + urlFor(resource));
-          bad.kind = response.status === 404 ? 'not-found' : 'network';
+                              ' for ' + url);
+          /* A 404 on a LIST endpoint means no service is answering here -
+           * GitHub Pages returning its own not-found for a path with no API
+           * behind it. A 404 on a run means the service answered and that
+           * run is genuinely not there. They need different words on screen,
+           * so they are told apart here rather than guessed at later. */
+          if (response.status === 404) {
+            bad.kind = (resource === 'standards-sets' || resource === 'courses' ||
+                        resource === 'runs') ? 'no-service' : 'not-found';
+          } else if (response.status === 401 || response.status === 403) {
+            bad.kind = 'no-service';
+          } else {
+            bad.kind = 'network';
+          }
           throw bad;
         }
         return response.json();
@@ -147,11 +206,26 @@ window.StandardsSource = (function () {
               '. These results are on the public site.'
       };
     }
+    if (run.status === 'superseded') {
+      return {
+        published: false,
+        text: 'Superseded by a later run against the same set and course. ' +
+              'Kept for the record; it is not what anybody is published from.'
+      };
+    }
     return {
       published: false,
       text: 'Not approved yet, so nothing here is on the public site. ' +
             'A person approves the run when they are done reviewing it.'
     };
+  }
+
+  /* Plain words for a run's status, for a menu line. */
+  function runStatusWord(run) {
+    if (run.status === 'approved') { return 'approved'; }
+    if (run.status === 'superseded') { return 'superseded'; }
+    if (run.status === 'in_review') { return 'in review'; }
+    return run.status;
   }
 
   return {
@@ -161,6 +235,7 @@ window.StandardsSource = (function () {
     setLabel: setLabel,
     setStatus: setStatus,
     runStatus: runStatus,
+    runStatusWord: runStatusWord,
     mode: SOURCE.mode
   };
 })();

@@ -171,6 +171,27 @@ are large. Read by `tools/corpus-browser/`.
 `scope_note` is required. A run without a stated scope produces a percentage
 nobody can defend.
 
+### `GET /api/runs?set_id=&course_id=`
+Runs, newest first. Both filters are optional and combine.
+
+The interface never has to know a run id. A reviewer knows the state and the
+course, not that the one they want is run 7 — so the page lists sets and
+courses, asks for those two, and takes the first row this returns.
+
+Ordered by `created_at`, not `approved_on`. `/public/coverage` orders by
+approved_on because every run it can see is approved; here the newest run is
+usually still in review and its approved_on is null.
+
+**There is no global "latest run".** A set against one course and the same set
+against another are separate work and neither supersedes the other. A caller
+that wants "the current one" has to say current for what, which is what the
+two filters are for.
+
+Carries no `counts` — this list is for choosing a run. `GET /api/runs/{id}`
+carries them for the one that gets chosen.
+
+Fixture: `runs.json`.
+
 ### `GET /api/runs/{id}`
 Fixture: `run.json`. Holds the counts for the queue header.
 

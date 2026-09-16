@@ -547,6 +547,47 @@ def create_run(body: NewRun):
     return row
 
 
+@app.get("/api/runs")
+def list_runs(set_id: int | None = None, course_id: int | None = None):
+    """Runs, newest first. Optionally narrowed to one set, one course, or both.
+
+    This exists so the interface never has to know a run id. A reviewer knows
+    "Oklahoma" and "AI Foundations"; run 7 means nothing to them. The page
+    asks for the set and the course - both of which already list - and takes
+    the first row this returns.
+
+    Ordered by `created_at`, not `approved_on`. `/public/coverage` orders by
+    approved_on because every run it can see is approved; here the newest run
+    is usually the one still in review, and its approved_on is null. Ordering
+    by it would bury the run somebody opened this morning underneath one
+    approved last year.
+
+    Newest-first per set and course is the only ordering that means anything.
+    There is no global "latest run": a set against one course and the same set
+    against another are different work, and neither supersedes the other. That
+    is why both filters are here.
+
+    No `counts`. This list is for choosing a run, and counting the records of
+    every run in the store to draw a menu is work nobody asked for.
+    `GET /api/runs/{id}` carries them for the one that gets chosen.
+    """
+    where, params = [], {}
+    if set_id is not None:
+        where.append("set_id = %(set_id)s")
+        params["set_id"] = set_id
+    if course_id is not None:
+        where.append("course_id = %(course_id)s")
+        params["course_id"] = course_id
+    clause = ("WHERE " + " AND ".join(where)) if where else ""
+
+    items = rows(f"""SELECT id, set_id, course_id, snapshot_id, scope_note,
+                            grain, status, previous_run_id, created_at,
+                            approved_by, approved_on
+                     FROM run {clause}
+                     ORDER BY created_at DESC, id DESC""", params)
+    return {"items": items, "total": len(items)}
+
+
 @app.get("/api/runs/{run_id}")
 def get_run(run_id: int):
     run = run_or_404(run_id)
@@ -574,6 +615,7 @@ def review_queue(run_id: int, status: str | None = None, flagged: bool | None = 
         SELECT json_build_object(
                  'id', s.id, 'identifier', s.identifier, 'statement', s.statement,
                  'concept', s.concept, 'subconcept', s.subconcept,
+                 'grade_band', s.grade_band,
                  'hierarchy_role', s.hierarchy_role, 'rating_rule', s.rating_rule,
                  'addressability', s.addressability,
                  'boundary_includes', s.boundary_includes,

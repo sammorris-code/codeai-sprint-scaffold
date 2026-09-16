@@ -1,12 +1,16 @@
-/* mapper.js — fills the two menus at the top of the page.
+/* mapper.js — choosing what to review.
  *
- * Before this existed, the Framework menu listed six US states written into the
- * page by hand. That is the thing this file removes. No state is built into any
- * tool: the menu shows whichever standards sets the store holds, and a set that
- * nobody has ingested does not appear.
+ * Two menus: a standards set and a course. Between them they name a piece of
+ * work — "Oklahoma against AI Foundations" — and workbench.js turns that into
+ * the newest run for the pair. Nobody types a run id.
  *
- * It no longer fetches anything. workbench.js loads the page's data once and
- * hands it to every panel, this one included.
+ * Before this existed, the set menu listed six US states written into the page
+ * by hand. That is the thing this file removes. No state is built into any
+ * tool: the menu shows whichever standards sets the store holds, and a set
+ * that nobody has ingested does not appear.
+ *
+ * It fetches nothing. workbench.js owns loading and hands this panel the
+ * catalogue, then the run it settled on.
  */
 
 window.RunForm = (function () {
@@ -14,14 +18,18 @@ window.RunForm = (function () {
 
   var S = window.StandardsSource;
 
-  var frameworkSelect = document.getElementById('framework');
+  var setSelect = document.getElementById('framework');
   var courseSelect = document.getElementById('course');
   var status = document.getElementById('source-status');
   var fallback = document.getElementById('needs-serving');
   var form = document.getElementById('run-form');
 
-  /* Replaces a menu's options. Keeps the first "Select a ..." option, because a
-   * menu that starts on a real value invites an accidental run. */
+  var wired = false;
+  var filled = false;
+
+  /* Replaces a menu's options, keeping a placeholder first so the page can
+   * show "nothing chosen" without inventing a choice on the reviewer's
+   * behalf. */
   function fillSelect(select, options, placeholder) {
     select.innerHTML = '';
     var first = document.createElement('option');
@@ -38,45 +46,64 @@ window.RunForm = (function () {
     select.disabled = false;
   }
 
-  /* "1 course", "3 courses". Worth the six lines: this string is read by a
-   * person every time the page loads. */
-  function count(n, noun) {
-    return n + ' ' + noun + (n === 1 ? '' : (noun.slice(-1) === 's' ? 'es' : 's'));
+  /* Changing either menu asks for that pair's newest run. There is no submit
+   * button: the menus are the question, and waiting for a second click to
+   * answer it is a step that earns nothing. */
+  function wire() {
+    if (wired) { return; }
+    wired = true;
+
+    function choose() {
+      window.Workbench.choose(Number(setSelect.value) || null,
+                              Number(courseSelect.value) || null);
+    }
+
+    setSelect.addEventListener('change', choose);
+    courseSelect.addEventListener('change', choose);
+  }
+
+  function fillMenus(ctx) {
+    fillSelect(setSelect, ctx.sets.map(function (set) {
+      return { value: String(set.id), label: set.title || S.setLabel(set) };
+    }), ctx.sets.length ? 'Choose a standards set' : 'No standards sets yet');
+
+    fillSelect(courseSelect, ctx.courses.map(function (course) {
+      return { value: String(course.id), label: course.course_name };
+    }), ctx.courses.length ? 'Choose a course' : 'No courses yet');
+
+    if (!ctx.sets.length) {
+      setSelect.disabled = true;
+      say('The store holds no standards sets. Ingest one to begin.');
+      return;
+    }
+
+    wire();
+    say('');
+  }
+
+  /* When a run arrives from a link rather than from these menus, the menus
+   * have to catch up or they describe something that is not on screen. */
+  function syncTo(ctx) {
+    if (ctx.set) { setSelect.value = String(ctx.set.id); }
+    if (ctx.course) { courseSelect.value = String(ctx.course.id); }
+    say('');
   }
 
   function say(message) {
     status.textContent = message;
   }
 
-  function fill(ctx) {
-    var sets = ctx.sets;
-    var courses = ctx.courses;
-
-    fillSelect(frameworkSelect, sets.map(function (set) {
-      return {
-        value: String(set.id),
-        label: S.setLabel(set) + ' — ' + S.setStatus(set).text
-      };
-    }), sets.length ? 'Select a standards set' : 'No standards sets yet');
-
-    fillSelect(courseSelect, courses.map(function (course) {
-      return { value: String(course.id), label: course.course_name };
-    }), courses.length ? 'Select a course' : 'No courses yet');
-
-    if (!sets.length) {
-      frameworkSelect.disabled = true;
-      say('The store holds no standards sets. Ingest one to begin.');
-      return;
+  /* Called twice: once with the catalogue, then again with each run. The
+   * menus are built once - rebuilding them on every run would throw away the
+   * reviewer's selection and put it back a moment later. */
+  function render(ctx) {
+    if (ctx.sets && !filled) {
+      filled = true;
+      fillMenus(ctx);
     }
-
-    /* This used to count the sets whose boundary notes nobody had checked and
-     * report it here, back when that number decided whether results could
-     * reach a district. It decides nothing now (contract/REVIEW-DESIGN.md), so
-     * putting it in front of somebody about to start a run only invites them
-     * to think they have a problem to clear first. Each set's own notes state
-     * is still on its line in the menu, which is where it is useful. */
-    say(count(sets.length, 'standards set') + ' and ' +
-        count(courses.length, 'course') + ' in the store.');
+    if (ctx.run) {
+      syncTo(ctx);
+    }
   }
 
   /* The page was opened from a file path. Say what happened and what to do
@@ -84,18 +111,18 @@ window.RunForm = (function () {
   function needsServing() {
     fallback.hidden = false;
     form.hidden = true;
-    say('This page needs to be served before it can read any data.');
   }
 
-  function showError(error) {
-    say('The data could not be read. ' + error.message);
-    frameworkSelect.disabled = true;
-    courseSelect.disabled = true;
+  function showMessage(text) {
+    /* Only the catalogue's own trouble belongs on this line. A message about
+     * one run is the run panel's to show; repeating it here would say the
+     * menus are broken when they are fine. */
+    if (!wired) { say(text); }
   }
 
   return {
-    render: fill,
+    render: render,
     needsServing: needsServing,
-    showError: showError
+    showMessage: showMessage
   };
 })();
