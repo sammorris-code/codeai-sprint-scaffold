@@ -500,6 +500,51 @@ def run_or_404(run_id):
     return run
 
 
+class NewRun(BaseModel):
+    set_id: int
+    course_id: int
+    scope_note: str = Field(min_length=1)
+    grain: str = Field(default="lesson", pattern="^(lesson|unit)$")
+    previous_run_id: int | None = None
+
+
+@app.post("/api/runs", status_code=201)
+def create_run(body: NewRun):
+    """Open a run. It starts empty.
+
+    `scope_note` is required and has no default. Coverage against a whole
+    framework and coverage against the part in scope are both true and differ
+    by half, so a run that cannot say which one it is produces a percentage
+    nobody can defend.
+
+    **This creates the row; it does not do the work.** Judging a course is one
+    model call per lesson and takes the better part of an hour, which is not a
+    thing to hold an HTTP request open for. `service/align.py` fills the run,
+    and can be pointed at a run this endpoint opened.
+    """
+    if not one("SELECT id FROM standards_set WHERE id = %(id)s",
+               {"id": body.set_id}):
+        fail(404, "not_found", f"No standards set with id {body.set_id}.", "set_id")
+    course = one("SELECT id, snapshot_id FROM course WHERE id = %(id)s",
+                 {"id": body.course_id})
+    if not course:
+        fail(404, "not_found", f"No course with id {body.course_id}.", "course_id")
+
+    row = one("""INSERT INTO run
+                   (set_id, course_id, snapshot_id, scope_note, grain,
+                    previous_run_id)
+                 VALUES (%(set_id)s, %(course_id)s, %(snap)s, %(scope)s,
+                         %(grain)s, %(prev)s)
+                 RETURNING id, set_id, course_id, snapshot_id, scope_note,
+                           grain, status, previous_run_id, created_at""",
+              {"set_id": body.set_id, "course_id": body.course_id,
+               "snap": course["snapshot_id"], "scope": body.scope_note,
+               "grain": body.grain, "prev": body.previous_run_id})
+    row["counts"] = {"standards": 0, "proposed": 0, "accepted": 0,
+                     "rejected": 0, "stale": 0}
+    return row
+
+
 @app.get("/api/runs/{run_id}")
 def get_run(run_id: int):
     run = run_or_404(run_id)

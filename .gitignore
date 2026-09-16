@@ -30,3 +30,9 @@ service/documents/*
 out/
 corpus/
 cdo/
+
+# Alignment output. A coverage percentage against a named real state is a
+# claim, and this repository is public. The store holds these; export them
+# locally when a district needs one.
+mapped_standards/
+runs/
