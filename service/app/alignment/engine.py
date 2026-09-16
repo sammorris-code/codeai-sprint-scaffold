@@ -94,9 +94,15 @@ keyword match would have claimed it.
 
 Rules that decide a claim:
 
-1. Evidence is a specific student task — an activity, a prompt, a level. "The \
-lesson is about this topic" is not evidence. A word appearing in both is not \
-evidence. If you cannot name the task, do not claim the standard.
+1. Evidence names where something happens — an activity, a discussion prompt, \
+a level, a task. "The lesson is about this topic" is not evidence, and a word \
+appearing in both is not evidence.
+1a. What the evidence must carry depends on the level you are claiming. An \
+`introduced` claim may rest on exposure: a definition, a discussion prompt, a \
+worked example, a teacher explanation. Name where it happens and claim \
+introduced. A `developed` or `mastered` claim must name something the student \
+does or produces. Do not withhold an introduced claim because no student task \
+exists — exposure with no student production is exactly what introduced means.
 2. Read boundary_includes and boundary_excludes before claiming. If the \
 evidence matches an exclusion, reject it and say which exclusion.
 3. The cognitive verb of the standard is the ceiling. A standard that says \
@@ -191,8 +197,69 @@ def standards_block(standards):
     return "\n".join(lines)
 
 
-def lesson_block(lesson, distilled):
-    """The one thing that changes per call."""
+def teaching_guide(plan, budget=14000):
+    """The teaching guide, trimmed but not summarised.
+
+    The first design left this out, on the briefing's reasoning that teacher
+    choreography is useless for alignment. That is true for a `mastered` claim
+    and wrong for an `introduced` one: exposure lives in a discussion prompt,
+    and the distilled record drops discussion prompts by design.
+
+    Measured against a hand mapping, leaving it out cost recall — 54 pairs
+    came back "no evidence" and 52 "never considered" on a lesson the person
+    had claimed. So it goes in, trimmed to a budget rather than summarised,
+    because a summary is what caused the problem.
+    """
+    out, used = [], 0
+    for activity in plan.get("activities") or []:
+        for section in activity.get("sections") or []:
+            title = section.get("name") or section.get("progression_name")
+            description = (section.get("description_md") or "").strip()
+            if not (title or description):
+                continue
+            chunk = [f"### {title or 'Section'}"]
+            if section.get("duration_minutes"):
+                chunk.append(f"({section['duration_minutes']} minutes)")
+            if description:
+                chunk.append(description[:900])
+            for tip in (section.get("tips") or [])[:2]:
+                if isinstance(tip, dict) and tip.get("markdown"):
+                    chunk.append(f"> {tip['type']}: {tip['markdown'][:300]}")
+            text = "\n".join(chunk)
+            if used + len(text) > budget:
+                out.append("*(teaching guide truncated)*")
+                return "\n\n".join(out)
+            out.append(text)
+            used += len(text)
+    return "\n\n".join(out)
+
+
+def student_screens(lesson, budget=10000):
+    """What students read, in their own words, in the order they meet it."""
+    out, used = [], 0
+    for level in lesson.get("levels") or []:
+        text = (level.get("student_text") or "").strip()
+        if not text:
+            continue
+        context = level.get("context") or {}
+        mark = " (one option of a choice)" if context.get("is_choice_option") else ""
+        chunk = (f"### {level.get('title') or level['level_name']}"
+                 f" [{level.get('level_type')}]{mark}\n{text[:900]}")
+        if used + len(chunk) > budget:
+            out.append("*(student screens truncated)*")
+            break
+        out.append(chunk)
+        used += len(chunk)
+    return "\n\n".join(out)
+
+
+def lesson_block(lesson, distilled, evidence="full"):
+    """The one thing that changes per call.
+
+    `evidence="distilled"` sends the student actions only. That was the first
+    design and it under-claimed, because a summary cannot evidence exposure.
+    `evidence="full"` adds the teaching guide and the student screens.
+    """
     plan = lesson.get("plan") or {}
     out = [f"# {lesson['lesson_name']}",
            f"Unit: {lesson['unit_name']} (`{lesson['script_name']}`)",
@@ -261,9 +328,25 @@ def lesson_block(lesson, distilled):
         out.append("")
 
     if plan.get("overview_md"):
-        out.append("## The teacher's overview, for context only")
+        out.append("## Overview")
         out.append(str(plan["overview_md"])[:1500])
         out.append("")
+
+    if evidence == "full":
+        guide = teaching_guide(plan)
+        if guide:
+            out.append("## The teaching guide")
+            out.append("What happens in the room, as the authors wrote it. A "
+                       "discussion prompt or a worked example here is exposure, "
+                       "and exposure is what `introduced` means.")
+            out.append("")
+            out.append(guide)
+            out.append("")
+        screens = student_screens(lesson)
+        if screens:
+            out.append("## The student screens, in full")
+            out.append(screens)
+            out.append("")
     return "\n".join(out)
 
 
@@ -281,7 +364,8 @@ def load_key(env_path="service/.env"):
     return False
 
 
-def judge(client, standards_text, lesson, distilled, model=MODEL, usage=None):
+def judge(client, standards_text, lesson, distilled, model=MODEL, usage=None,
+          evidence="full"):
     """One lesson against the cached standards. Returns the parsed answer."""
     import anthropic  # imported here so the module loads without the SDK
 
