@@ -34,11 +34,16 @@
 #      docker compose -f docker-compose_public.yml exec -T db \
 #        psql -U standards -d standards < dump.sql
 #
-# 5. Point the interface at it. In tools/standards-mapper/loader.js, the SOURCE
+# 5. Put it behind Traefik. Copy traefik/standards.yml into the directory your
+#    file provider watches, set the Host rule, and choose a middleware. The
+#    api joins Traefik's network and publishes nothing, so that route is the
+#    only way to reach it.
+#
+# 6. Point the interface at it. In tools/standards-mapper/loader.js, the SOURCE
 #    block becomes:
 #
 #      mode: 'api',
-#      base: 'https://your-host.example/api',
+#      base: 'https://standards.your-nas.example/api',
 #
 # ---------------------------------------------------------------------------
 # Three deliberate differences from the local file
@@ -61,14 +66,17 @@
 #      docker compose -f docker-compose_public.yml --profile demo up seed
 #
 # ---------------------------------------------------------------------------
-# Still to do before this is anything but a prototype
+# Where the authentication lives
 # ---------------------------------------------------------------------------
 #
-# The API has five write endpoints and no authentication, and
-# `allow_origins=["*"]` in app/main.py lets any page call them. API_BIND below
-# keeps it on localhost so a reverse proxy has to front it - put basic auth or
-# an address allowlist there. Setting API_BIND to 0.0.0.0 without doing that
-# hands anyone who finds the URL the ability to approve runs.
+# Not here. The API has five write endpoints, none of them authenticated, and
+# `allow_origins=["*"]` in app/main.py lets any page call them. Anyone who can
+# reach it can approve a run.
+#
+# So it publishes no host port at all, and Traefik is the only route in. The
+# middleware on that route is the authentication - see traefik/standards.yml,
+# which also explains why an address allowlist is usually the right choice over
+# basic auth here, and what breaks if you pick wrong.
 
 name: standards-public
 
@@ -107,11 +115,21 @@ services:
     environment:
       DATABASE_URL: postgresql://standards:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/standards
       # ANTHROPIC_API_KEY is absent on purpose. See the note above.
-    ports:
-      # Localhost by default, so a reverse proxy must front this and can carry
-      # the authentication the API does not have. Override only once that
-      # proxy exists: API_BIND=0.0.0.0 in .env.
-      - "${API_BIND:-127.0.0.1}:8000:8000"
+    # Named so Traefik can address it as http://standards-api:8000 over the
+    # shared network below. See traefik/standards.yml.
+    container_name: standards-api
+    # No `ports:` at all. Traefik is the only way in, which means the
+    # middleware on that route cannot be walked around by finding the port.
+    #
+    # If your Traefik is NOT a container on this host, it cannot resolve the
+    # name above. Uncomment this and point the Traefik service at
+    # http://127.0.0.1:8000 instead. Leave the address at 127.0.0.1 - binding
+    # 0.0.0.0 publishes the unauthenticated API beside the authenticated route.
+    # ports:
+    #   - "${API_BIND:-127.0.0.1}:8000:8000"
+    networks:
+      - default      # reaches db
+      - traefik      # reaches the proxy
     depends_on:
       db:
         condition: service_healthy
@@ -132,6 +150,17 @@ services:
       db:
         condition: service_healthy
     restart: "no"
+
+networks:
+  # Traefik's own network, created by whatever brings Traefik up. `external`
+  # means compose expects to find it rather than making its own - if the name
+  # differs on your NAS, change it here.
+  #
+  # Only the api joins it. The database stays on `default`, reachable from the
+  # api and from nothing else.
+  traefik:
+    external: true
+    name: ${TRAEFIK_NETWORK:-traefik}
 
 volumes:
   pgdata:
