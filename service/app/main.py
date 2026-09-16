@@ -420,13 +420,39 @@ LESSON_JSON = """json_build_object(
 
 @app.get("/api/lessons")
 def list_lessons(course_id: int | None = None):
+    """Lessons in teaching order, each one once.
+
+    Two things here are not obvious, and both stayed invisible while the only
+    data was four fixture lessons. Real AIF data — 190 lessons across 15 units
+    shared between three courses — made them plain.
+
+    **A lesson's position restarts in every unit.** `absolute_position` is
+    absolute within its unit, not within the course, so ordering by it alone
+    interleaves the units: all six Pre-Assessments first, then all the Lesson
+    1s. Course order is the unit's `position` first, then the lesson's.
+
+    **A unit belongs to more than one course.** Joining `course_unit` without
+    a course therefore returns a shared lesson once per course that includes
+    it — 344 rows for 194 lessons. The join is a lateral picking exactly one
+    link, so the count is right whether or not a course is named.
+    """
     items = rows(f"""
         SELECT l.id, {LESSON_JSON} AS lesson
         FROM lesson l
         JOIN unit u ON u.id = l.unit_id
-        LEFT JOIN course_unit cu ON cu.unit_id = u.id
-        WHERE (%(course)s::int IS NULL OR cu.course_id = %(course)s)
-        ORDER BY l.absolute_position""", {"course": course_id})
+        LEFT JOIN LATERAL (
+            SELECT cu.position, cu.displayed_number
+              FROM course_unit cu
+             WHERE cu.unit_id = u.id
+               AND (%(course)s::int IS NULL OR cu.course_id = %(course)s)
+             ORDER BY cu.course_id
+             LIMIT 1
+        ) cu ON true
+        WHERE %(course)s::int IS NULL
+           OR EXISTS (SELECT 1 FROM course_unit x
+                       WHERE x.unit_id = u.id AND x.course_id = %(course)s)
+        ORDER BY cu.position NULLS LAST, u.script_name,
+                 l.absolute_position, l.id""", {"course": course_id})
     return {"items": [dict(r["lesson"], id=r["id"]) for r in items],
             "total": len(items)}
 
