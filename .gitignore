@@ -36,3 +36,7 @@ cdo/
 # locally when a district needs one.
 mapped_standards/
 runs/
+
+# Local database snapshots must never enter this public repository.
+dump.sql
+*.dump

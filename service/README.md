@@ -2,6 +2,11 @@
 
 A prototype. Postgres holds the data; a small FastAPI service serves it.
 
+An opt-in [standards evidence comparison](standards-evidence-comparison.md)
+can audit a stored run or generate source-cited requirement findings alongside
+it. It reads the database without changing existing runs and writes an offline
+HTML comparison. The default audit needs no model API key.
+
 **This is not the real store yet.** It runs on one machine, it has a password
 written into a file, and it lets any web page call it. All three change before
 it holds anything real. See *Before this holds real data* at the bottom.
