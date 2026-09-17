@@ -180,44 +180,14 @@ window.StandardsSource = (function () {
    *
    * This describes the notes and nothing else. It used to be read as though it
    * decided whether results could reach a district; it never decides anything
-   * now. See contract/REVIEW-DESIGN.md, and runStatus() below for the rule that
-   * actually gates a release. */
+   * now. The rule that actually gates a release is an approved run, and it is
+   * enforced by the service - contract/REVIEW-DESIGN.md. Nothing in the
+   * interface needs to restate it. */
   function setStatus(set) {
     if (set.all_boundaries_checked) {
       return { text: 'Notes checked by a person', all_boundaries_checked: true };
     }
     return { text: 'Notes are drafts', all_boundaries_checked: false };
-  }
-
-  /* The real release gate, in one place: a run is published when a person has
-   * approved it. Nothing about the set's boundary notes appears here, because
-   * nothing about them holds a release any more.
-   *
-   * The service agrees - service/app/main.py, approve() - and this is the only
-   * place the interface states the rule. */
-  function runStatus(run) {
-    if (!run) {
-      return { published: false, text: 'No run loaded.' };
-    }
-    if (run.status === 'approved') {
-      return {
-        published: true,
-        text: 'Approved' + (run.approved_by ? ' by ' + run.approved_by : '') +
-              '. These results are on the public site.'
-      };
-    }
-    if (run.status === 'superseded') {
-      return {
-        published: false,
-        text: 'Superseded by a later run against the same set and course. ' +
-              'Kept for the record; it is not what anybody is published from.'
-      };
-    }
-    return {
-      published: false,
-      text: 'Not approved yet, so nothing here is on the public site. ' +
-            'A person approves the run when they are done reviewing it.'
-    };
   }
 
   /* Plain words for a run's status, for a menu line. */
@@ -234,7 +204,6 @@ window.StandardsSource = (function () {
     urlFor: urlFor,
     setLabel: setLabel,
     setStatus: setStatus,
-    runStatus: runStatus,
     runStatusWord: runStatusWord,
     mode: SOURCE.mode
   };

@@ -60,6 +60,51 @@ window.ReviewQueue = (function () {
     announcer.textContent = message;
   }
 
+  // ---- Naming a lesson, and deciding what still needs a person -----------
+
+  /* "4.6" — unit and lesson, the way the mockup showed it and the way the
+   * team says it out loud.
+   *
+   * The unit number is `displayed_number` and nothing else. `position` is the
+   * unit's order in the course and the two are different things: the contract
+   * is explicit that you show one and sort by the other, never compute either
+   * from the other. Most AIF units carry no displayed_number at all, so for
+   * those this is the lesson token alone rather than a unit number invented
+   * from the ordering. A wrong "6.11" would look exactly as authoritative as
+   * a right one. */
+  function unitLessonLabel(lesson) {
+    var unit = lesson.displayed_number;
+    if (unit === null || unit === undefined || unit === '') {
+      return String(lesson.lesson_token);
+    }
+    return unit + '.' + lesson.lesson_token;
+  }
+
+  /* The unit in words, always shown: a lesson token on its own does not say
+   * where in the course you are. */
+  function unitLabel(lesson) {
+    return lesson.displayed_number
+      ? 'Unit ' + lesson.displayed_number + ' — ' + lesson.unit_name
+      : lesson.unit_name;
+  }
+
+  /* Still a person's to answer. A decision made in this session settles it
+   * whatever the store last said; otherwise the store's status decides.
+   * `stale` counts as needing review — it was accepted once and the lesson
+   * has changed underneath it since. */
+  function recordNeedsReview(record) {
+    if (D.get(record.id)) { return false; }
+    return record.review_status === 'proposed' || record.review_status === 'stale';
+  }
+
+  function settledWord(record) {
+    var decision = D.get(record.id);
+    var status = decision ? decision.review_status : record.review_status;
+    return status === 'accepted' ? 'accepted'
+         : status === 'rejected' ? 'rejected'
+         : status;
+  }
+
   // ---- Filtering --------------------------------------------------------
 
   function recordsOf(item) {
@@ -67,9 +112,7 @@ window.ReviewQueue = (function () {
   }
 
   function itemHasPending(item) {
-    return recordsOf(item).some(function (record) {
-      return !D.get(record.id);
-    });
+    return recordsOf(item).some(recordNeedsReview);
   }
 
   function visibleItems() {
@@ -325,15 +368,16 @@ window.ReviewQueue = (function () {
     var decision = D.get(record.id);
     var li = el('li', 'wb-record');
 
-    var unitLabel = lesson.displayed_number
-      ? 'Unit ' + lesson.displayed_number + ' — ' + lesson.unit_name
-      : lesson.unit_name;
-
     var head = el('div', 'wb-record-head');
-    head.appendChild(el('span', 'wb-pill wb-pill-lesson', lesson.lesson_token));
-    head.appendChild(el('span', 'wb-record-title',
-      lesson.lesson_name + ' (' + unitLabel + ') — proposed at ' + record.level));
+    head.appendChild(el('span', 'wb-pill wb-pill-lesson', unitLessonLabel(lesson)));
+    head.appendChild(el('span', 'wb-record-title', lesson.lesson_name));
     li.appendChild(head);
+
+    /* Where this lesson sits. A lesson name alone does not tell a reviewer
+     * which unit they are in, and every one of these cards used to read the
+     * same without it. */
+    li.appendChild(el('p', 'wb-record-where',
+      unitLabel(lesson) + ' · proposed at ' + record.level));
 
     /* Stale is the most important thing on the screen: this was already
      * accepted, and the lesson has since changed underneath it. It must say
@@ -471,11 +515,47 @@ window.ReviewQueue = (function () {
       return wrap;
     }
 
+    var pending = records.filter(recordNeedsReview);
+
+    if (!pending.length) {
+      wrap.appendChild(el('p', 'wb-all-settled',
+        'Every match on this standard has been reviewed.'));
+      return wrap;
+    }
+
     var ul = el('ul', 'wb-record-list');
-    records.forEach(function (record) {
+    pending.forEach(function (record) {
       ul.appendChild(evidenceItem(standard, record));
     });
     wrap.appendChild(ul);
+
+    return wrap;
+  }
+
+  /* Matches that no longer need a person, as pills beside the standard.
+   *
+   * They still matter — they are part of the picture for this standard — but
+   * a settled match does not need a whole card with evidence, a depth picker
+   * and two buttons. As a pill it takes one line, and what is left below is
+   * only the work. The word is in the pill, not just a colour. */
+  function settledPills(records) {
+    var settled = records.filter(function (record) {
+      return !recordNeedsReview(record);
+    });
+    if (!settled.length) { return null; }
+
+    var wrap = el('div', 'wb-settled');
+    wrap.appendChild(el('span', 'wb-settled-label',
+      settled.length === 1 ? 'Reviewed:' : 'Reviewed (' + settled.length + '):'));
+
+    settled.forEach(function (record) {
+      var word = settledWord(record);
+      var pill = el('span',
+        'wb-pill ' + (word === 'rejected' ? 'wb-pill-rejected' : 'wb-pill-done'),
+        unitLessonLabel(record.lesson) + ' ' + word);
+      pill.title = record.lesson.lesson_name + ' — ' + unitLabel(record.lesson);
+      wrap.appendChild(pill);
+    });
 
     return wrap;
   }
@@ -484,6 +564,16 @@ window.ReviewQueue = (function () {
     var standard = item.standard;
     var li = el('li', 'wb-card');
     li.id = 'card-' + standard.id;
+
+    /* Everything a reviewer needs to keep in view while they read the
+     * evidence below: which standard this is, what it says, and which of its
+     * matches are already settled. It sticks to the top of the viewport for
+     * as long as the card is on screen.
+     *
+     * The boundary notes are deliberately NOT in here. Opened, they are tall
+     * enough to pin half the screen, and they are a thing you consult once
+     * rather than something to hold in view. */
+    var top = el('div', 'wb-card-sticky');
 
     var head = el('div', 'wb-card-head');
 
@@ -495,14 +585,16 @@ window.ReviewQueue = (function () {
     if (standard.concept) {
       head.appendChild(el('span', 'wb-pill wb-pill-concept', standard.concept));
     }
-    if (!itemHasPending(item) && recordsOf(item).length) {
-      head.appendChild(el('span', 'wb-pill wb-pill-done', 'Reviewed'));
-    }
 
     head.appendChild(el('span', 'wb-position', position + ' of ' + total));
-    li.appendChild(head);
+    top.appendChild(head);
 
-    li.appendChild(el('p', 'wb-statement', standard.statement));
+    top.appendChild(el('p', 'wb-statement', standard.statement));
+
+    var settled = settledPills(recordsOf(item));
+    if (settled) { top.appendChild(settled); }
+
+    li.appendChild(top);
 
     /* <details> rather than a panel that is always open: the boundary notes
      * matter when a match looks wrong, and are noise the rest of the time.
@@ -570,11 +662,27 @@ window.ReviewQueue = (function () {
     var fresh = standardCard(item, position, shown.length);
     old.parentNode.replaceChild(fresh, old);
 
-    var target = rejecting[focusRecordId]
-      ? document.getElementById('reason-' + focusRecordId)
-      : (D.get(focusRecordId)
-        ? document.getElementById('status-' + focusRecordId)
-        : document.getElementById('accept-' + focusRecordId));
+    focusAfter(fresh, focusRecordId);
+  }
+
+  /* Where the keyboard goes after a card is repainted.
+   *
+   * A decided record no longer has a card — it moves up to the settled pills —
+   * so the status line this used to focus is gone by the time we look for it.
+   * Landing on <body> there would drop a reviewer to the top of a 55-standard
+   * page on every Accept, which is the exact failure the per-card repaint
+   * exists to avoid. So: the reason box if a rejection is open, the record's
+   * own status line if it is still on screen, otherwise the next thing in
+   * this card worth acting on, and the standard's heading as a last resort. */
+  function focusAfter(card, recordId) {
+    var target = rejecting[recordId]
+      ? document.getElementById('reason-' + recordId)
+      : document.getElementById('status-' + recordId);
+
+    if (!target) {
+      target = card.querySelector('button[id^="accept-"]') ||
+               card.querySelector('.wb-ident');
+    }
     if (target) { target.focus(); }
   }
 
@@ -635,6 +743,18 @@ window.ReviewQueue = (function () {
 
     renderControls();
     renderList();
+
+    /* The envelope carries a cursor and the service has never set it — it
+     * returns the whole run in one response. If that ever changes, a page
+     * that ignores it would quietly show a fraction of the queue and look
+     * complete. Cheaper to say so than to find out from a wrong total. */
+    if (ctx.queue.cursor) {
+      var more = el('p', 'wb-note',
+        'The service says there is more of this queue than it sent. This ' +
+        'page shows only what arrived, so the counts above are low.');
+      more.setAttribute('role', 'alert');
+      mount.appendChild(more);
+    }
   }
 
   function showMessage(text) {

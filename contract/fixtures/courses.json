@@ -5,6 +5,7 @@
       "snapshot_id": 7,
       "course_key": "demo-course-one",
       "course_name": "Demo Course One",
+      "semester": null,
       "units": [
         {
           "id": 11,
