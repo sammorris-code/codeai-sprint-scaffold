@@ -8,12 +8,12 @@
  * not how anybody identifies their own work, so it appears once, quietly, at
  * the end of the line.
  *
- * The one rule this file exists to keep honest: a run reaches a district when
- * a person approves it, and never for any other reason. An earlier version of
- * this screen said a run was held back until every boundary note in the set
- * had been checked. That rule is gone - contract/REVIEW-DESIGN.md says why -
- * and the banner here states the real one. loader.js's runStatus() decides it;
- * this file only prints what it returns.
+ * There is no publish banner. It said in three lines what the status word in
+ * the header line says in one, on every single run, forever. The rule it was
+ * defending is still true and still enforced by the service - a run reaches a
+ * district when a person approves it (contract/REVIEW-DESIGN.md) - it just
+ * does not need a standing announcement on a screen whose whole job is the
+ * reviewing that happens first.
  */
 
 window.RunSummary = (function () {
@@ -23,7 +23,7 @@ window.RunSummary = (function () {
   var D = window.ReviewDecisions;
 
   var mount = document.getElementById('run-summary');
-  var totalRecords = 0;
+  var queueItems = [];
 
   function el(tag, className, text) {
     var node = document.createElement(tag);
@@ -47,14 +47,23 @@ window.RunSummary = (function () {
     return wrap;
   }
 
-  function pendingRecords() {
-    return Math.max(0, totalRecords - D.count());
+  /* Standards still carrying something for a person to decide.
+   *
+   * This tile used to count records, and read 434 beside three tiles counting
+   * standards. Two things were wrong with that. The number was inflated by a
+   * join bug (fixed in the service: a record was emitted once per course
+   * sharing its unit), and even correct it answered a different question from
+   * its neighbours - "55 in scope, 41 matched, 434 to check, 14 not taught"
+   * does not describe one set of things. All four count standards now. */
+  function standardsPending() {
+    return queueItems.filter(itemNeedsReview).length;
   }
 
-  function countRecords(queue) {
-    return (queue.items || []).reduce(function (sum, item) {
-      return sum + (item.records ? item.records.length : 0);
-    }, 0);
+  function itemNeedsReview(item) {
+    return (item.records || []).some(function (record) {
+      if (D.get(record.id)) { return false; }
+      return record.review_status === 'proposed' || record.review_status === 'stale';
+    });
   }
 
   /* The grades this run covers.
@@ -64,6 +73,13 @@ window.RunSummary = (function () {
    * Oklahoma set - while grade_band is on every standard by the time one has
    * been ingested. The set's scope is the fallback, and saying nothing is
    * better than guessing. */
+  /* [rank, value] for one band. Numeric bands sort by their first number;
+   * anything lettered (K, PK) sorts ahead of all of them. */
+  function gradeSortKey(band) {
+    var first = String(band).split(/[^0-9A-Za-z]+/)[0];
+    return /^\d+$/.test(first) ? [1, parseInt(first, 10)] : [0, first.toUpperCase()];
+  }
+
   function gradeLabel(ctx) {
     var seen = {};
     (ctx.queue.items || []).forEach(function (item) {
@@ -71,7 +87,13 @@ window.RunSummary = (function () {
       if (band) { seen[band] = true; }
     });
 
-    var bands = Object.keys(seen).sort();
+    /* Sorted by the grade they start at, not as strings. Alphabetically
+     * "11-12" sorts before "9-10", which is how the header came to read
+     * "Grades 11-12, 9-10". K and PK come before any number. */
+    var bands = Object.keys(seen).sort(function (a, b) {
+      var ka = gradeSortKey(a), kb = gradeSortKey(b);
+      return (ka[0] - kb[0]) || (ka[1] < kb[1] ? -1 : ka[1] > kb[1] ? 1 : 0);
+    });
     if (bands.length) {
       return 'Grades ' + bands.join(', ');
     }
@@ -97,6 +119,17 @@ window.RunSummary = (function () {
     return parts.filter(Boolean).join(' · ');
   }
 
+  /* "AI Foundations: Exploring AI and CS, Semester 1". The column is null for
+   * most courses, so the semester is appended only when there is one rather
+   * than guessed at from the course name. */
+  function courseLabel(ctx) {
+    if (!ctx.course) { return null; }
+    var name = ctx.course.course_name;
+    var sem = ctx.course.semester;
+    if (!sem) { return name; }
+    return name + ', ' + (/^S\d$/.test(sem) ? 'Semester ' + sem.slice(1) : sem);
+  }
+
   function heading(ctx) {
     var wrap = el('div', 'wb-run-head');
 
@@ -116,7 +149,7 @@ window.RunSummary = (function () {
     wrap.appendChild(el('p', 'wb-run-detail', joinParts([
       ctx.set ? ctx.set.framework : null,
       gradeLabel(ctx),
-      ctx.course ? ctx.course.course_name : null
+      courseLabel(ctx)
     ])));
 
     // The provenance line: which framework year, which course version, and
@@ -140,7 +173,7 @@ window.RunSummary = (function () {
 
     wrap.appendChild(tile('Standards in scope', coverage.in_scope.total));
     wrap.appendChild(tile('Matches found', coverage.in_scope.covered));
-    wrap.appendChild(tile('Needs your check', pendingRecords(), 'attention'));
+    wrap.appendChild(tile('Standards to check', standardsPending(), 'attention'));
     wrap.appendChild(tile('Not taught', coverage.buckets.not_addressed || 0));
 
     return wrap;
@@ -154,12 +187,22 @@ window.RunSummary = (function () {
     var coverage = ctx.coverage;
     var wrap = el('div', 'wb-percents');
 
-    wrap.appendChild(el('p', 'wb-percent-line',
-      coverage.in_scope.percent + '% of the standards in scope are covered (' +
-      coverage.in_scope.covered + ' of ' + coverage.in_scope.total + '). ' +
-      'Across the whole framework it is ' + coverage.whole_framework.percent +
-      '% (' + coverage.whole_framework.covered + ' of ' +
-      coverage.whole_framework.total + ').'));
+    /* Two percentages exist because scope is a judgement and they usually
+     * differ. When nothing is out of scope they are the same number, and
+     * printing it twice in one sentence reads like a mistake rather than
+     * like rigour. Say it once, and say why it is only once. */
+    var scoped = coverage.in_scope;
+    var whole = coverage.whole_framework;
+    var same = scoped.percent === whole.percent && scoped.total === whole.total;
+
+    wrap.appendChild(el('p', 'wb-percent-line', same
+      ? scoped.percent + '% of the framework is covered (' + scoped.covered +
+        ' of ' + scoped.total + '). Nothing is out of scope in this run, so ' +
+        'the in-scope and whole-framework figures are the same number.'
+      : scoped.percent + '% of the standards in scope are covered (' +
+        scoped.covered + ' of ' + scoped.total + '). Across the whole ' +
+        'framework it is ' + whole.percent + '% (' + whole.covered + ' of ' +
+        whole.total + ').'));
 
     wrap.appendChild(el('p', 'wb-scope-note', 'Scope: ' + coverage.scope_note));
 
@@ -199,33 +242,10 @@ window.RunSummary = (function () {
     return warning;
   }
 
-  /* The release gate, and the only place this screen speaks about publishing. */
-  function publishBanner(ctx) {
-    var state = S.runStatus(ctx.run);
-    var banner = el('div', 'wb-banner ' +
-      (state.published ? 'wb-banner-published' : 'wb-banner-holding'));
-    banner.setAttribute('role', 'status');
-
-    banner.appendChild(el('p', 'wb-banner-title',
-      state.published ? 'Published' : 'Not published yet'));
-    banner.appendChild(el('p', null, state.text));
-
-    /* Said here on purpose. This is exactly where the old screen claimed the
-     * boundary notes held the release, so this is where a reviewer who
-     * remembers that needs to be told they do not. */
-    if (ctx.set && !ctx.set.all_boundaries_checked) {
-      banner.appendChild(el('p', 'wb-banner-aside',
-        'The boundary notes for this set are still drafts. That does not hold ' +
-        'anything back — a note gets checked when an alignment turns on it.'));
-    }
-
-    return banner;
-  }
-
   function render(ctx) {
     if (!ctx.run) { return; }
 
-    totalRecords = countRecords(ctx.queue);
+    queueItems = ctx.queue.items || [];
 
     mount.innerHTML = '';
     mount.appendChild(heading(ctx));
@@ -234,8 +254,6 @@ window.RunSummary = (function () {
 
     var problem = countCheckWarning(ctx);
     if (problem) { mount.appendChild(problem); }
-
-    mount.appendChild(publishBanner(ctx));
   }
 
   /* Called by queue.js after a decision, so the "Needs your check" tile counts
@@ -243,7 +261,7 @@ window.RunSummary = (function () {
    * panel is rebuilt and no focus is disturbed. */
   function refresh() {
     var value = mount.querySelector('.wb-tile-attention .wb-tile-value');
-    if (value) { value.textContent = String(pendingRecords()); }
+    if (value) { value.textContent = String(standardsPending()); }
   }
 
   return {

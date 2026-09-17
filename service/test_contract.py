@@ -114,6 +114,16 @@ for a, f in zip(api["items"], fixture["items"]):
         check(f"{f['standard_set']}.{key}", a[key] == f[key],
               f"api {a[key]!r} vs fixture {f[key]!r}")
 
+print("\nCourses")
+api = c.get("/api/courses").json()
+fixture = strip(fx("courses"))
+check("count matches", api["total"] == fixture["total"],
+      f"api {api['total']} vs fixture {fixture['total']}")
+for a, f in zip(api["items"], fixture["items"]):
+    for key in ("course_name", "semester"):
+        check(f"{f['course_name']}.{key}", a[key] == f[key],
+              f"api {a.get(key)!r} vs fixture {f[key]!r}")
+
 print("\nRuns")
 api = c.get("/api/runs").json()
 fixture = strip(fx("runs"))
@@ -144,6 +154,15 @@ api = c.get("/api/runs/1/queue").json()
 fixture = strip(fx("review-queue"))
 check("14 standards returned", api["total"] == fixture["total"],
       f"api {api['total']} vs fixture {fixture['total']}")
+# The join that produced this used to emit a record once per course sharing
+# its unit, which doubled a real run and made "needs your check" read 202 for
+# 101 records. Nothing in a single-course fixture would catch it, so assert the
+# invariant directly rather than a count.
+seen = [(i["standard"]["identifier"], r["lesson"]["stable_id"])
+        for i in api["items"] for r in i["records"]]
+check("each (standard, lesson) appears once", len(seen) == len(set(seen)),
+      f"{len(seen)} records but {len(set(seen))} distinct pairs")
+
 check("standards with no evidence are kept",
       sum(1 for i in api["items"] if not i["records"]) ==
       sum(1 for i in fixture["items"] if not i["records"]),
