@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "standard.schema.json",
+  "title": "Standard",
+  "type": "object",
+  "required": ["id", "set_id", "identifier", "statement", "concept",
+               "boundary_includes", "keywords", "boundary_provenance",
+               "hierarchy_role", "rating_rule", "addressability"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "integer"},
+    "set_id": {"type": "integer"},
+    "identifier": {"type": "string", "minLength": 1,
+      "description": "The source's own id, verbatim. Never invented or normalized."},
+    "statement": {"type": "string", "minLength": 1,
+      "description": "Verbatim. A paraphrase is a defect."},
+    "concept": {"type": "string", "minLength": 1},
+    "subconcept": {"type": ["string", "null"]},
+    "grade_band": {"type": ["string", "null"]},
+    "level": {"type": ["string", "null"],
+      "description": "Specialty band such as S1 or S2. Never the course."},
+    "boundary_includes": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "boundary_excludes": {"type": "array", "items": {"type": "string"},
+      "description": "The primary false-positive defense. Write it even when obvious."},
+    "keywords": {"type": "array", "minItems": 1, "items": {"type": "string"},
+      "description": "Retrieval terms. Never sufficient evidence."},
+    "boundary_provenance": {"enum": ["source", "drafted", "drafted+reviewed"]},
+    "nearest_csta": {"type": "array", "maxItems": 3, "items": {"type": "string"},
+      "description": "A drafting aid and an audit trail. Not a validated crosswalk."},
+    "hierarchy_role": {"enum": ["umbrella", "standard"]},
+    "rating_rule": {"enum": ["direct", "rollup"],
+      "description": "An umbrella row is rated by rollup, never on its own."},
+    "addressability": {"enum": ["curriculum", "program"],
+      "description": "A program requirement is not a curriculum gap."},
+    "parent_id": {"type": ["integer", "null"]},
+    "extras": {"type": "object"}
+  },
+  "allOf": [{
+    "if": {"properties": {"hierarchy_role": {"const": "umbrella"}}, "required": ["hierarchy_role"]},
+    "then": {"properties": {"rating_rule": {"const": "rollup"}}}
+  }, {
+    "anyOf": [
+      {"required": ["grade_band"], "properties": {"grade_band": {"type": "string"}}},
+      {"required": ["level"], "properties": {"level": {"type": "string"}}}
+    ]
+  }]
+}
