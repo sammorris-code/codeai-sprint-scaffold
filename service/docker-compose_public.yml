@@ -32,15 +32,28 @@
 #      docker compose -f docker-compose_public.yml pull
 #      docker compose -f docker-compose_public.yml up -d
 #
-# 4. On your laptop, dump what you have:
+# 4. On your laptop, dump what you have. Write it INSIDE the container and
+#    copy it out - do not redirect with `>`:
 #
 #      docker compose -f service/docker-compose.yml exec -T db \
-#        pg_dump -U standards -d standards --clean --if-exists > dump.sql
+#        pg_dump -U standards -d standards --clean --if-exists -f /tmp/dump.sql
+#      docker compose -f service/docker-compose.yml cp db:/tmp/dump.sql ./dump.sql
 #
-# 5. Copy dump.sql to the host and load it:
+#    `> dump.sql` looks equivalent and is not: PowerShell 5.1 redirects as
+#    UTF-16, psql reads every other byte as a command, and you get a screen of
+#    `invalid command \th` plus an error about encoding that never mentions
+#    the shell. The two lines above are the same on every platform.
 #
-#      docker compose -f docker-compose_public.yml exec -T db \
-#        psql -U standards -d standards < dump.sql
+#    Check before copying: the file should be tens of KB and start with `--`.
+#
+# 5. Copy dump.sql to the host, beside this file, and load it:
+#
+#      docker compose -f docker-compose_public.yml --profile restore up restore
+#
+#    Re-runnable: drop a newer dump.sql in and run it again. See the `restore`
+#    service below for why it is a profile rather than an init script.
+#
+#    If you move the file with WinSCP or similar, set it to binary mode.
 #
 # 6. Put it behind Traefik. Copy traefik/standards.toml into the directory
 #    your file provider watches and set the Host rule. Read its header first:
@@ -167,6 +180,49 @@ services:
     environment:
       DATABASE_URL: postgresql://standards:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/standards
     command: ["python", "-m", "service.load_fixtures"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # Load a pg_dump sitting beside this file. Also behind a profile, so a plain
+  # `up -d` never touches your data:
+  #
+  #   docker compose -f docker-compose_public.yml --profile restore up restore
+  #
+  # The obvious alternative is mounting the dump into
+  # /docker-entrypoint-initdb.d, and it is worse. That runs once, on the first
+  # start of an empty volume, and is ignored ever after - so it automates the
+  # step you do once and does nothing for the one you repeat, pushing a newer
+  # dump up. Making it fire again means `down -v`, which destroys the volume
+  # and everything a reviewer has done since. There is already one mechanism
+  # in this file that silently reloads data under the right conditions, and it
+  # ate an ingested standards set once. One is enough.
+  #
+  # This runs whenever you ask and never when you do not, which is the property
+  # that matters.
+  restore:
+    profiles: ["restore"]
+    # The postgres image for its client, not the service image - this only
+    # needs psql.
+    image: postgres:16-alpine
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      # Read-only, and it must already exist. Docker silently creates a
+      # DIRECTORY for a bind mount whose source is missing, and psql then fails
+      # on it - which is ugly but loud, and better than the same mistake under
+      # initdb.d, where you would get a healthy container and an empty store.
+      - ./dump.sql:/tmp/dump.sql:ro
+    # ON_ERROR_STOP is not decoration. Without it psql reports each failure and
+    # carries on, so a dump written by PowerShell's `>` - UTF-16, not UTF-8 -
+    # scrolls a hundred lines of `invalid command \th` and leaves you guessing
+    # which one mattered. With it, the first bad byte stops the run.
+    #
+    # Make the dump with --clean --if-exists (see step 4 above) so this drops
+    # and recreates rather than colliding with what is already there.
+    command: ["psql", "-h", "db", "-U", "standards", "-d", "standards",
+              "-v", "ON_ERROR_STOP=1", "-f", "/tmp/dump.sql"]
     depends_on:
       db:
         condition: service_healthy
