@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corpus Browser — CodeAI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-title">
+    <h1>Corpus Browser</h1>
+    <p class="internal">Internal tool — reads the extracted curriculum corpus</p>
+  </div>
+
+  <form class="pickers" id="pickers">
+    <div class="field">
+      <label for="snapshot">Corpus</label>
+      <select id="snapshot" name="snapshot"></select>
+    </div>
+    <div class="field">
+      <label for="course">Curriculum</label>
+      <select id="course" name="course"></select>
+    </div>
+    <div class="field field-api">
+      <label for="api">Service</label>
+      <input id="api" name="api" type="url" spellcheck="false"
+             value="http://localhost:8000/api">
+    </div>
+    <button type="submit" id="reload">Reload</button>
+  </form>
+</header>
+
+<p id="status" class="status" role="status" aria-live="polite"></p>
+
+<main>
+  <nav class="units" aria-label="Units and lessons">
+    <div class="units-head">
+      <h2>Units</h2>
+      <p id="units-summary"></p>
+    </div>
+    <div id="unit-list"></div>
+  </nav>
+
+  <article class="lesson" id="lesson" aria-live="polite">
+    <div class="empty">
+      <h2>Pick a lesson</h2>
+      <p>Choose a curriculum above, then a lesson on the left, to see what the
+        corpus holds for it — the plan a teacher reads and the screens a
+        student reads, in the order they meet them.</p>
+    </div>
+  </article>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
