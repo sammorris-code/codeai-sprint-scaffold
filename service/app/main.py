@@ -40,6 +40,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Standards service", version="0.1.0", lifespan=lifespan)
+from .standards_v2.api import router as evidence_router
+app.include_router(evidence_router)
 
 # The interface is served as static files from somewhere else, so it is a
 # different origin. Prototype setting: tighten before this leaves a laptop.

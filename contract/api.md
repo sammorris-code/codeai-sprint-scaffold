@@ -342,6 +342,23 @@ The board packet. Server-rendered, so a district gets the same page an RP linked
 
 ---
 
+## Proposed evidence workflow
+
+These internal endpoints serve the separate lesson–unit–course workflow described
+in [STANDARDS-V2.md](../service/STANDARDS-V2.md). They do not publish coverage.
+
+| Endpoint | Behavior |
+|---|---|
+| `GET /api/evidence-runs` | Lists saved proposed artifacts; reports `migration_required` if the additive tables are absent |
+| `GET /api/evidence-runs/{id}` | Returns the immutable artifact and appended review history |
+| `POST /api/evidence-runs/{id}/reviews` | Records a decision against a computed course or unit standard outcome |
+
+A review body contains `source_fingerprint`, `scope` (`course` or `unit`),
+`unit_key` (unit scope only), `standard_id`, `decision` (`accept`, `reject`, or
+`needs_review`), `actor`, and `reason`. A stale fingerprint returns 409; an unknown
+outcome returns 422. Review decisions neither modify model findings nor approve
+the artifact for public use. Reviewer identity remains self-reported.
+
 ## Errors
 
 | Code | When |

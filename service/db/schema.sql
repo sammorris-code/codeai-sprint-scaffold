@@ -180,3 +180,44 @@ CREATE TABLE review_event (
   reason      text,
   created_at  timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TABLE instructional_inventory (
+  id bigserial PRIMARY KEY,
+  snapshot_id bigint NOT NULL REFERENCES snapshot(id),
+  lesson_stable_id text NOT NULL,
+  source_fingerprint text NOT NULL,
+  interpretation_hash text NOT NULL UNIQUE,
+  payload jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE performance_interpretation (
+  id bigserial PRIMARY KEY,
+  set_id bigint NOT NULL REFERENCES standards_set(id),
+  interpretation_hash text NOT NULL UNIQUE,
+  payload jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE evidence_run (
+  id bigserial PRIMARY KEY,
+  baseline_run_id bigint NOT NULL REFERENCES run(id),
+  source_fingerprint text NOT NULL,
+  artifact_hash text NOT NULL UNIQUE,
+  status text NOT NULL DEFAULT 'proposed' CHECK (status = 'proposed'),
+  payload jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE evidence_review (
+  id bigserial PRIMARY KEY,
+  evidence_run_id bigint NOT NULL REFERENCES evidence_run(id),
+  scope text NOT NULL CHECK (scope IN ('course', 'unit')),
+  unit_key text,
+  standard_identifier text NOT NULL,
+  decision text NOT NULL CHECK (decision IN ('accept', 'reject', 'needs_review')),
+  actor text NOT NULL CHECK (length(trim(actor)) > 0),
+  reason text NOT NULL CHECK (length(trim(reason)) > 0),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK ((scope = 'course' AND unit_key IS NULL) OR (scope = 'unit' AND unit_key IS NOT NULL))
+);

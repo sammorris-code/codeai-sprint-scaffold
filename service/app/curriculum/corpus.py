@@ -28,6 +28,7 @@ import re
 import time
 
 from .distil import distil, to_markdown
+from ..alignment_evidence.sources import extract as evidence_sources
 from .lessons import StandardsCatalog, extract_unit
 from .levels import LevelIndex
 from .repo import SUBDIRS, Repo
@@ -374,6 +375,7 @@ def write(result, out_dir, log=print):
     # It is derived, so it goes stale the moment the corpus moves without it,
     # and a flag is a thing somebody forgets.
     (out / "distilled").mkdir(parents=True, exist_ok=True)
+    (out / "evidence").mkdir(parents=True, exist_ok=True)
 
     courses_by_unit = {}
     for course in result["courses"]:
@@ -387,6 +389,7 @@ def write(result, out_dir, log=print):
         (out / "lessons" / script_name).mkdir(parents=True, exist_ok=True)
         (out / "levels" / script_name).mkdir(parents=True, exist_ok=True)
         (out / "distilled" / script_name).mkdir(parents=True, exist_ok=True)
+        (out / "evidence" / script_name).mkdir(parents=True, exist_ok=True)
         for lesson in unit["lessons"]:
             stem = f"{lesson['absolute_position']:02d}-{lesson['slug']}"
             # Names are built by concatenation, not with_suffix(). A stem like
@@ -398,6 +401,8 @@ def write(result, out_dir, log=print):
                 json.dumps(lesson, indent=2, ensure_ascii=False), encoding="utf-8")
             (plan_dir / f"{stem}.md").write_text(
                 _lesson_markdown(lesson), encoding="utf-8")
+            (out / "evidence" / script_name / f"{stem}.sources.json").write_text(
+                json.dumps(evidence_sources(lesson), indent=2, ensure_ascii=False), encoding="utf-8")
 
             level_dir = out / "levels" / script_name
             (level_dir / f"{stem}.levels.json").write_text(
@@ -450,6 +455,8 @@ def write(result, out_dir, log=print):
         ],
         "totals": totals(result),
         "distilled": distil_summary(distilled),
+        "instructional_inventory": {"source_directory": "evidence", "status": "awaiting_synthesis",
+                                   "synthesize_with": "service/standards_pipeline.py --corpus PATH --stage inventory --live"},
         "lessons": rows,
     }
     (out / "manifest.json").write_text(

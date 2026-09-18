@@ -468,7 +468,7 @@ def judge(client, standards_text, lesson, distilled, model=MODEL, usage=None,
              "cache_control": {"type": "ephemeral"}},
         ],
         messages=[{"role": "user",
-                   "content": lesson_block(lesson, distilled)}],
+                   "content": lesson_block(lesson, distilled, evidence)}],
         output_config={"format": {"type": "json_schema",
                                   "schema": ANSWER_SCHEMA}},
     )

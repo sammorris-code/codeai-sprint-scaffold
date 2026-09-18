@@ -169,8 +169,15 @@ def main(argv=None):
         for i, lesson in enumerate(lessons, 1):
             distilled = distil(lesson)
             try:
-                answer = engine.judge(client, lesson_text, lesson, distilled,
-                                      model=args.model, usage=usage)
+                lesson_standards = standards_text
+                if args.tier1:
+                    plausible = engine.screen_lesson(client, screen_text, lesson, distilled,
+                                                      model=args.tier1_model, usage=screen_usage,
+                                                      evidence=args.evidence)
+                    lesson_standards = engine.standards_block(
+                        [by_identifier[i] for i in plausible if i in by_identifier])
+                answer = engine.judge(client, lesson_standards, lesson, distilled,
+                                      model=args.model, usage=usage, evidence=args.evidence)
             except Exception as exc:                              # noqa: BLE001
                 failures.append({"stable_id": lesson["stable_id"],
                                  "error": f"{type(exc).__name__}: {exc}"})
@@ -203,12 +210,22 @@ def main(argv=None):
                      claim["choice_option"], json.dumps(claim["flags"])))
             conn.commit()
 
-            spend = engine.cost_of(usage, args.model)
+            spend = (engine.cost_of(usage, args.model)
+                     + engine.cost_of(screen_usage, args.tier1_model))
             print(f"  [{i}/{len(lessons)}] {lesson['lesson_name'][:44]:44} "
                   f"{len(kept):>2} claims, {len(dropped):>2} rejected   "
                   f"${spend:.2f}")
 
         # --- outcomes, including the misses --------------------------------
+        if failures:
+            if args.out:
+                pathlib.Path(args.out).write_text(json.dumps({
+                    "run_id": run_id, "scope": args.scope, "claims": per_claims,
+                    "rejections": per_rejections, "failures": failures,
+                    "outcomes": {}, "usage": usage, "screen_usage": screen_usage, "status": "incomplete"},
+                    indent=2, ensure_ascii=False), encoding="utf-8")
+            print("Run incomplete: failed lessons remain unknown. No course outcomes written.")
+            return 1
         outcomes = verify.aggregate(per_claims, per_rejections, candidate_ids)
         for identifier, outcome in outcomes.items():
             standard_id = conn.execute(
@@ -229,7 +246,8 @@ def main(argv=None):
 
         check = verify.count_check(outcomes, candidate_ids)
         cover = verify.coverage(outcomes)
-        spend = engine.cost_of(usage, args.model)
+        spend = (engine.cost_of(usage, args.model)
+                     + engine.cost_of(screen_usage, args.tier1_model))
 
         print(f"\nRun {run_id} finished in {time.time()-started:.0f}s")
         print(f"  claims kept      {sum(len(c) for c in per_claims.values()):>6}")
@@ -244,7 +262,7 @@ def main(argv=None):
             for f in failures[:5]:
                 print(f"    {f['stable_id']}: {f['error']}")
         print(f"\n  spend            ${spend:.2f}  "
-              f"({usage.get('calls',0)} calls, "
+              f"({usage.get('calls',0) + screen_usage.get('calls',0)} calls, "
               f"{usage.get('cache_read_input_tokens',0):,} cached tokens read)")
         if lessons:
             print(f"  per lesson       ${spend/max(1,len(lessons)):.3f}")
@@ -254,7 +272,7 @@ def main(argv=None):
                 "run_id": run_id, "scope": args.scope, "model": args.model,
                 "claims": per_claims, "rejections": per_rejections,
                 "outcomes": outcomes, "count_check": check,
-                "coverage": cover, "usage": usage, "cost_usd": spend,
+                "coverage": cover, "usage": usage, "screen_usage": screen_usage, "cost_usd": spend,
                 "failures": failures}, indent=2, ensure_ascii=False),
                 encoding="utf-8")
             print(f"  wrote {args.out}")

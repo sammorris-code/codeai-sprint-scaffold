@@ -2,6 +2,11 @@
 
 A prototype. Postgres holds the data; a small FastAPI service serves it.
 
+The new [lesson–unit–course evidence workflow](STANDARDS-V2.md) adds reusable
+instructional inventories, required-performance interpretation, pathway-aware
+coverage, and a separate review interface. Start there for the standards redesign
+and migration instructions. Its proposed findings do not replace historical runs.
+
 An opt-in [standards evidence comparison](standards-evidence-comparison.md)
 can audit a stored run or generate source-cited requirement findings alongside
 it. It reads the database without changing existing runs and writes an offline

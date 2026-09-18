@@ -1,5 +1,9 @@
 # The store
 
+The lesson–unit–course workflow adds four tables below. Legacy tables and public
+views retain their original contract. Apply `service/db/migrate_evidence.py` to
+an existing database; new installations receive them from generated schema.sql.
+
 Postgres. Eleven tables, not the six I estimated. The join table and the
 separation of a run from a record account for the growth. Both are necessary,
 and the reason is given below each one.
@@ -403,3 +407,59 @@ boundary matter.
 `boundary_provenance` still means what it always did. It records where a boundary
 came from, and `drafted+reviewed` still means a person checked it. It is no
 longer a precondition for publishing.
+
+## Evidence workflow (v2)
+
+Versioned derived inventories and performance interpretations are reusable.
+A saved run is an immutable artifact with its exact inputs, lesson findings,
+unit synthesis, pathway formulas, course outcomes, and baseline comparison.
+Reviewer decisions are separate append-only events. None of these tables feeds
+legacy public views, and no v2 operation auto-approves or publishes a result.
+
+```sql
+CREATE TABLE instructional_inventory (
+  id bigserial PRIMARY KEY,
+  snapshot_id bigint NOT NULL REFERENCES snapshot(id),
+  lesson_stable_id text NOT NULL,
+  source_fingerprint text NOT NULL,
+  interpretation_hash text NOT NULL UNIQUE,
+  payload jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE performance_interpretation (
+  id bigserial PRIMARY KEY,
+  set_id bigint NOT NULL REFERENCES standards_set(id),
+  interpretation_hash text NOT NULL UNIQUE,
+  payload jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE evidence_run (
+  id bigserial PRIMARY KEY,
+  baseline_run_id bigint NOT NULL REFERENCES run(id),
+  source_fingerprint text NOT NULL,
+  artifact_hash text NOT NULL UNIQUE,
+  status text NOT NULL DEFAULT 'proposed' CHECK (status = 'proposed'),
+  payload jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE evidence_review (
+  id bigserial PRIMARY KEY,
+  evidence_run_id bigint NOT NULL REFERENCES evidence_run(id),
+  scope text NOT NULL CHECK (scope IN ('course', 'unit')),
+  unit_key text,
+  standard_identifier text NOT NULL,
+  decision text NOT NULL CHECK (decision IN ('accept', 'reject', 'needs_review')),
+  actor text NOT NULL CHECK (length(trim(actor)) > 0),
+  reason text NOT NULL CHECK (length(trim(reason)) > 0),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK ((scope = 'course' AND unit_key IS NULL) OR (scope = 'unit' AND unit_key IS NOT NULL))
+);
+```
+
+Source content is retained with each artifact. Cache reuse requires matching
+source and interpretation fingerprints. Reviews cannot be transferred silently
+to regenerated artifacts. `actor` retains the prototype service's existing
+self-reported reviewer identity; production authentication remains external.

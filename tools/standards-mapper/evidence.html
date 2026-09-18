@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Standards evidence review</title><link rel="stylesheet" href="evidence.css"></head>
+<body><main><nav><a href="index.html">Alignment workbench</a></nav><h1>Standards evidence review</h1>
+<p>Inspect lesson contributions, unit sequences, and course coverage.</p>
+<section><h2>Open a comparison</h2><label for="report-file">Local report.json</label><input id="report-file" type="file" accept=".json">
+<button id="list-runs" type="button">Load saved evidence runs</button>
+<label for="saved-run">Saved run</label><select id="saved-run"><option value="">Choose a run</option></select>
+<p id="status" role="status"></p></section><div id="report"></div>
+<section id="review-panel" hidden><h2>Record a review</h2>
+<p>Records a decision on this immutable artifact. It does not publish the result.</p>
+<form id="review-form"><label for="review-scope">Scope</label><select id="review-scope"><option value="course">Course</option><option value="unit">Unit</option></select>
+<label for="review-unit">Unit key (unit reviews only)</label><input id="review-unit">
+<label for="review-standard">Standard identifier</label><input id="review-standard" required>
+<label for="review-decision">Decision</label><select id="review-decision"><option value="needs_review">Needs review</option><option value="accept">Accept</option><option value="reject">Reject</option></select>
+<label for="review-actor">Reviewer</label><input id="review-actor" required>
+<label for="review-reason">Reason</label><input id="review-reason" required>
+<button type="submit">Record decision</button></form><div id="review-history"></div></section>
+</main><script src="evidence.js"></script><script src="evidence-store.js"></script></body></html>
